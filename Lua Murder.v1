@@ -1,467 +1,235 @@
 --[[ =============================================
-     PHANTOM HUB v1 - MM2
-     Tema: Neón Morado / Cian
-     Compatible: 📱 Celular y 💻 PC
+     MM2 - UI Simple
+     ESP + Speed + Jump + Noclip
      ============================================= ]]
 
 local Players = game:GetService("Players")
 local RunService = game:GetService("RunService")
 local UserInputService = game:GetService("UserInputService")
-local Lighting = game:GetService("Lighting")
 
 local player = Players.LocalPlayer
 local camera = workspace.CurrentCamera
 
 -- ========================================
---               TEMA
--- ========================================
-local Theme = {
-    Primary     = Color3.fromRGB(160, 50, 255),   -- Morado neón
-    Secondary   = Color3.fromRGB(0, 220, 255),    -- Cian
-    Background  = Color3.fromRGB(10, 8, 20),      -- Casi negro azulado
-    Panel       = Color3.fromRGB(18, 15, 32),     -- Panel oscuro
-    Item        = Color3.fromRGB(28, 22, 48),     -- Items
-    ItemHover   = Color3.fromRGB(45, 32, 75),     -- Hover
-    Text        = Color3.fromRGB(240, 235, 255),  -- Texto claro
-    TextDim     = Color3.fromRGB(140, 130, 170),  -- Texto apagado
-    Success     = Color3.fromRGB(0, 255, 130),
-    Danger      = Color3.fromRGB(255, 60, 90),
-}
-
--- ========================================
---           CONFIG GLOBAL
+--           CONFIG
 -- ========================================
 local Config = {
-    -- ESP
-    ESPEnabled = false,
-    ESPNames = true,
-    ESPDistance = true,
-    ESPBox2D = false,
-    ESPDroppedWeapons = false,
-    ColorMurderer = Color3.fromRGB(255, 40, 40),
-    ColorSheriff  = Color3.fromRGB(40, 130, 255),
-    ColorInnocent = Color3.fromRGB(40, 220, 90),
-    -- Movimiento
-    Speed = 16,
-    JumpPower = 50,
-    InfiniteJump = false,
+    ESP = false,
+    Speed = false,
+    Jump = false,
     Noclip = false,
-    -- Gráficos
-    Fullbright = false,
-    -- Sheriff/Murderer
-    AutoShoot = false,
-    AutoStab = false,
 }
+
+local SPEED_VALUE = 50
+local originalSpeed = 16
 
 local State = {
-    ESPObjects = {},      -- [player] = {highlight, billboard, box}
-    WeaponESP = {},
-    Connections = {},
-    InfiniteJumpConn = nil,
-    NoclipConn = nil,
+    ESPObjects = {},
     ESPLoop = false,
+    JumpConn = nil,
+    NoclipConn = nil,
+}
+
+local ROLE_COLORS = {
+    Murderer = Color3.fromRGB(255, 40, 40),
+    Sheriff  = Color3.fromRGB(40, 130, 255),
+    Innocent = Color3.fromRGB(40, 220, 90),
+    Unknown  = Color3.fromRGB(180, 180, 180),
 }
 
 -- ========================================
---           UTILIDADES UI
+--           GUI BASE
 -- ========================================
 local ScreenGui = Instance.new("ScreenGui")
-ScreenGui.Name = "PhantomHub"
+ScreenGui.Name = "MM2_SimpleUI"
 ScreenGui.ResetOnSpawn = false
 ScreenGui.IgnoreGuiInset = true
 ScreenGui.ZIndexBehavior = Enum.ZIndexBehavior.Sibling
 ScreenGui.Parent = player:WaitForChild("PlayerGui")
 
-local function createCorner(parent, radius)
-    local c = Instance.new("UICorner")
-    c.CornerRadius = radius or UDim.new(0, 8)
-    c.Parent = parent
-    return c
-end
-
-local function createStroke(parent, color, thickness, transparency)
-    local s = Instance.new("UIStroke")
-    s.Color = color or Theme.Primary
-    s.Thickness = thickness or 1.5
-    s.Transparency = transparency or 0
-    s.ApplyStrokeMode = Enum.ApplyStrokeMode.Border
-    s.Parent = parent
-    return s
-end
-
--- ========================================
---           BOTÓN FLOTANTE
--- ========================================
+-- ===== BOTÓN ABRIR (pequeño) =====
 local OpenBtn = Instance.new("TextButton")
-OpenBtn.Name = "OpenBtn"
-OpenBtn.Size = UDim2.new(0, 55, 0, 55)
+OpenBtn.Size = UDim2.new(0, 50, 0, 50)
 OpenBtn.Position = UDim2.new(0, 15, 0.45, 0)
-OpenBtn.BackgroundColor3 = Theme.Panel
-OpenBtn.TextColor3 = Theme.Primary
-OpenBtn.Text = "👻"
-OpenBtn.Font = Enum.Font.GothamBlack
-OpenBtn.TextSize = 26
+OpenBtn.BackgroundColor3 = Color3.fromRGB(25, 25, 30)
+OpenBtn.TextColor3 = Color3.fromRGB(0, 220, 255)
+OpenBtn.Text = "⚙"
+OpenBtn.Font = Enum.Font.GothamBold
+OpenBtn.TextSize = 24
 OpenBtn.BorderSizePixel = 0
 OpenBtn.Active = true
 OpenBtn.Draggable = true
 OpenBtn.Parent = ScreenGui
-createCorner(OpenBtn, UDim.new(1, 0))
-local obStroke = createStroke(OpenBtn, Theme.Primary, 2)
 
--- ========================================
---           VENTANA PRINCIPAL
--- ========================================
-local Window = Instance.new("Frame")
-Window.Name = "Window"
-Window.Size = UDim2.new(0, 500, 0, 320)
-Window.Position = UDim2.new(0.5, -250, 0.5, -160)
-Window.BackgroundColor3 = Theme.Background
-Window.BorderSizePixel = 0
-Window.Visible = false
-Window.Active = true
-Window.Draggable = true
-Window.Parent = ScreenGui
-createCorner(Window, UDim.new(0, 14))
-local wStroke = createStroke(Window, Theme.Primary, 1.5, 0.4)
+local openCorner = Instance.new("UICorner")
+openCorner.CornerRadius = UDim.new(1, 0)
+openCorner.Parent = OpenBtn
+
+local openStroke = Instance.new("UIStroke")
+openStroke.Color = Color3.fromRGB(0, 220, 255)
+openStroke.Thickness = 2
+openStroke.Parent = OpenBtn
+
+-- ===== PANEL PRINCIPAL =====
+local Panel = Instance.new("Frame")
+Panel.Size = UDim2.new(0, 240, 0, 290)
+Panel.Position = UDim2.new(0.5, -120, 0.5, -145)
+Panel.BackgroundColor3 = Color3.fromRGB(18, 18, 24)
+Panel.BorderSizePixel = 0
+Panel.Visible = false
+Panel.Active = true
+Panel.Draggable = true
+Panel.Parent = ScreenGui
+
+local panelCorner = Instance.new("UICorner")
+panelCorner.CornerRadius = UDim.new(0, 12)
+panelCorner.Parent = Panel
+
+local panelStroke = Instance.new("UIStroke")
+panelStroke.Color = Color3.fromRGB(0, 220, 255)
+panelStroke.Thickness = 1.5
+panelStroke.Transparency = 0.4
+panelStroke.Parent = Panel
 
 -- ===== HEADER =====
 local Header = Instance.new("Frame")
-Header.Name = "Header"
-Header.Size = UDim2.new(1, 0, 0, 38)
-Header.BackgroundColor3 = Theme.Panel
+Header.Size = UDim2.new(1, 0, 0, 36)
+Header.BackgroundColor3 = Color3.fromRGB(25, 25, 32)
 Header.BorderSizePixel = 0
-Header.Parent = Window
-createCorner(Header, UDim.new(0, 14))
+Header.Parent = Panel
 
-local HeaderFix = Instance.new("Frame")
-HeaderFix.Size = UDim2.new(1, 0, 0, 12)
-HeaderFix.Position = UDim2.new(0, 0, 1, -12)
-HeaderFix.BackgroundColor3 = Theme.Panel
-HeaderFix.BorderSizePixel = 0
-HeaderFix.Parent = Header
+local headerCorner = Instance.new("UICorner")
+headerCorner.CornerRadius = UDim.new(0, 12)
+headerCorner.Parent = Header
 
-local LogoDot = Instance.new("Frame")
-LogoDot.Size = UDim2.new(0, 10, 0, 10)
-LogoDot.Position = UDim2.new(0, 14, 0.5, -5)
-LogoDot.BackgroundColor3 = Theme.Primary
-LogoDot.BorderSizePixel = 0
-LogoDot.Parent = Header
-createCorner(LogoDot, UDim.new(1, 0))
+local headerFix = Instance.new("Frame")
+headerFix.Size = UDim2.new(1, 0, 0, 12)
+headerFix.Position = UDim2.new(0, 0, 1, -12)
+headerFix.BackgroundColor3 = Color3.fromRGB(25, 25, 32)
+headerFix.BorderSizePixel = 0
+headerFix.Parent = Header
 
 local TitleLbl = Instance.new("TextLabel")
-TitleLbl.Size = UDim2.new(0, 200, 1, 0)
-TitleLbl.Position = UDim2.new(0, 30, 0, 0)
+TitleLbl.Size = UDim2.new(1, -50, 1, 0)
+TitleLbl.Position = UDim2.new(0, 12, 0, 0)
 TitleLbl.BackgroundTransparency = 1
-TitleLbl.Text = "PHANTOM HUB"
-TitleLbl.TextColor3 = Theme.Text
+TitleLbl.Text = "🎮 MM2 PANEL"
+TitleLbl.TextColor3 = Color3.fromRGB(0, 220, 255)
 TitleLbl.Font = Enum.Font.GothamBold
 TitleLbl.TextSize = 14
 TitleLbl.TextXAlignment = Enum.TextXAlignment.Left
 TitleLbl.Parent = Header
 
-local VersionLbl = Instance.new("TextLabel")
-VersionLbl.Size = UDim2.new(0, 80, 1, 0)
-VersionLbl.Position = UDim2.new(0, 150, 0, 0)
-VersionLbl.BackgroundTransparency = 1
-VersionLbl.Text = "v1.0"
-VersionLbl.TextColor3 = Theme.Secondary
-VersionLbl.Font = Enum.Font.GothamBold
-VersionLbl.TextSize = 11
-VersionLbl.TextXAlignment = Enum.TextXAlignment.Left
-VersionLbl.Parent = Header
-
-local MinBtn = Instance.new("TextButton")
-MinBtn.Size = UDim2.new(0, 26, 0, 26)
-MinBtn.Position = UDim2.new(1, -64, 0.5, -13)
-MinBtn.BackgroundColor3 = Theme.Item
-MinBtn.Text = "−"
-MinBtn.TextColor3 = Theme.Text
-MinBtn.Font = Enum.Font.GothamBold
-MinBtn.TextSize = 16
-MinBtn.BorderSizePixel = 0
-MinBtn.Parent = Header
-createCorner(MinBtn, UDim.new(1, 0))
-
 local CloseBtn = Instance.new("TextButton")
-CloseBtn.Size = UDim2.new(0, 26, 0, 26)
-CloseBtn.Position = UDim2.new(1, -34, 0.5, -13)
-CloseBtn.BackgroundColor3 = Theme.Danger
+CloseBtn.Size = UDim2.new(0, 24, 0, 24)
+CloseBtn.Position = UDim2.new(1, -30, 0.5, -12)
+CloseBtn.BackgroundColor3 = Color3.fromRGB(200, 40, 60)
+CloseBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
 CloseBtn.Text = "✕"
-CloseBtn.TextColor3 = Color3.new(1, 1, 1)
 CloseBtn.Font = Enum.Font.GothamBold
-CloseBtn.TextSize = 13
+CloseBtn.TextSize = 12
 CloseBtn.BorderSizePixel = 0
 CloseBtn.Parent = Header
-createCorner(CloseBtn, UDim.new(1, 0))
 
--- ===== SIDEBAR (izquierda) =====
-local Sidebar = Instance.new("Frame")
-Sidebar.Size = UDim2.new(0, 130, 1, -50)
-Sidebar.Position = UDim2.new(0, 8, 0, 44)
-Sidebar.BackgroundColor3 = Theme.Panel
-Sidebar.BorderSizePixel = 0
-Sidebar.Parent = Window
-createCorner(Sidebar, UDim.new(0, 10))
+local closeCorner = Instance.new("UICorner")
+closeCorner.CornerRadius = UDim.new(1, 0)
+closeCorner.Parent = CloseBtn
 
-local SideScroll = Instance.new("ScrollingFrame")
-SideScroll.Size = UDim2.new(1, -6, 1, -12)
-SideScroll.Position = UDim2.new(0, 3, 0, 6)
-SideScroll.BackgroundTransparency = 1
-SideScroll.BorderSizePixel = 0
-SideScroll.ScrollBarThickness = 3
-SideScroll.ScrollBarImageColor3 = Theme.Primary
-SideScroll.CanvasSize = UDim2.new(0, 0, 0, 0)
-SideScroll.AutomaticCanvasSize = Enum.AutomaticSize.Y
-SideScroll.Parent = Sidebar
+-- ===== CONTENEDOR DE BOTONES =====
+local ItemsHolder = Instance.new("Frame")
+ItemsHolder.Size = UDim2.new(1, -16, 1, -50)
+ItemsHolder.Position = UDim2.new(0, 8, 0, 42)
+ItemsHolder.BackgroundTransparency = 1
+ItemsHolder.Parent = Panel
 
-local SideLayout = Instance.new("UIListLayout")
-SideLayout.Padding = UDim.new(0, 4)
-SideLayout.SortOrder = Enum.SortOrder.LayoutOrder
-SideLayout.Parent = SideScroll
-
--- ===== CONTENIDO (derecha) =====
-local ContentArea = Instance.new("Frame")
-ContentArea.Size = UDim2.new(1, -152, 1, -50)
-ContentArea.Position = UDim2.new(0, 144, 0, 44)
-ContentArea.BackgroundColor3 = Theme.Panel
-ContentArea.BorderSizePixel = 0
-ContentArea.Parent = Window
-createCorner(ContentArea, UDim.new(0, 10))
+local ItemsLayout = Instance.new("UIListLayout")
+ItemsLayout.Padding = UDim.new(0, 8)
+ItemsLayout.SortOrder = Enum.SortOrder.LayoutOrder
+ItemsLayout.Parent = ItemsHolder
 
 -- ========================================
---           SISTEMA DE TABS
+--           FUNCIÓN CREAR BOTÓN
 -- ========================================
-local Tabs = {}
-local CurrentTab = nil
-
-local function createTab(name, icon)
-    -- Botón sidebar
-    local tabBtn = Instance.new("TextButton")
-    tabBtn.Size = UDim2.new(1, 0, 0, 30)
-    tabBtn.BackgroundColor3 = Theme.Background
-    tabBtn.TextColor3 = Theme.TextDim
-    tabBtn.Text = icon .. "  " .. name
-    tabBtn.Font = Enum.Font.GothamSemibold
-    tabBtn.TextSize = 12
-    tabBtn.TextXAlignment = Enum.TextXAlignment.Left
-    tabBtn.BorderSizePixel = 0
-    tabBtn.Parent = SideScroll
-    createCorner(tabBtn, UDim.new(0, 6))
+local function crearItem(nombre, emoji, callback)
+    local item = Instance.new("TextButton")
+    item.Size = UDim2.new(1, 0, 0, 48)
+    item.BackgroundColor3 = Color3.fromRGB(28, 28, 36)
+    item.Text = ""
+    item.BorderSizePixel = 0
+    item.AutoButtonColor = false
+    item.Parent = ItemsHolder
     
-    local pad = Instance.new("UIPadding")
-    pad.PaddingLeft = UDim.new(0, 8)
-    pad.Parent = tabBtn
+    local corner = Instance.new("UICorner")
+    corner.CornerRadius = UDim.new(0, 8)
+    corner.Parent = item
     
-    -- Contenedor contenido
-    local content = Instance.new("ScrollingFrame")
-    content.Size = UDim2.new(1, -12, 1, -12)
-    content.Position = UDim2.new(0, 6, 0, 6)
-    content.BackgroundTransparency = 1
-    content.BorderSizePixel = 0
-    content.ScrollBarThickness = 3
-    content.ScrollBarImageColor3 = Theme.Primary
-    content.CanvasSize = UDim2.new(0, 0, 0, 0)
-    content.AutomaticCanvasSize = Enum.AutomaticSize.Y
-    content.Visible = false
-    content.Parent = ContentArea
+    local stroke = Instance.new("UIStroke")
+    stroke.Color = Color3.fromRGB(60, 60, 75)
+    stroke.Thickness = 1.5
+    stroke.Parent = item
     
-    local layout = Instance.new("UIListLayout")
-    layout.Padding = UDim.new(0, 6)
-    layout.SortOrder = Enum.SortOrder.LayoutOrder
-    layout.Parent = content
-    
-    Tabs[name] = { Button = tabBtn, Content = content }
-    
-    tabBtn.MouseButton1Click:Connect(function()
-        for n, t in pairs(Tabs) do
-            t.Content.Visible = false
-            t.Button.BackgroundColor3 = Theme.Background
-            t.Button.TextColor3 = Theme.TextDim
-        end
-        content.Visible = true
-        tabBtn.BackgroundColor3 = Theme.Item
-        tabBtn.TextColor3 = Theme.Primary
-        CurrentTab = name
-    end)
-    
-    return content
-end
-
--- ========================================
---           COMPONENTES UI
--- ========================================
-local function createSection(parent, text)
     local lbl = Instance.new("TextLabel")
-    lbl.Size = UDim2.new(1, 0, 0, 22)
+    lbl.Size = UDim2.new(1, -60, 1, 0)
+    lbl.Position = UDim2.new(0, 14, 0, 0)
     lbl.BackgroundTransparency = 1
-    lbl.Text = "▸ " .. text
-    lbl.TextColor3 = Theme.Secondary
-    lbl.Font = Enum.Font.GothamBold
-    lbl.TextSize = 11
+    lbl.Text = emoji .. "  " .. nombre
+    lbl.TextColor3 = Color3.fromRGB(220, 220, 230)
+    lbl.Font = Enum.Font.GothamSemibold
+    lbl.TextSize = 14
     lbl.TextXAlignment = Enum.TextXAlignment.Left
-    lbl.Parent = parent
-    return lbl
-end
-
-local function createToggle(parent, text, default, callback)
-    local frame = Instance.new("TextButton")
-    frame.Size = UDim2.new(1, 0, 0, 34)
-    frame.BackgroundColor3 = Theme.Item
-    frame.Text = ""
-    frame.BorderSizePixel = 0
-    frame.AutoButtonColor = false
-    frame.Parent = parent
-    createCorner(frame, UDim.new(0, 8))
+    lbl.Parent = item
     
-    local label = Instance.new("TextLabel")
-    label.Size = UDim2.new(1, -60, 1, 0)
-    label.Position = UDim2.new(0, 10, 0, 0)
-    label.BackgroundTransparency = 1
-    label.Text = text
-    label.TextColor3 = Theme.Text
-    label.Font = Enum.Font.GothamSemibold
-    label.TextSize = 12
-    label.TextXAlignment = Enum.TextXAlignment.Left
-    label.Parent = frame
-    
+    -- Switch visual
     local switch = Instance.new("Frame")
-    switch.Size = UDim2.new(0, 38, 0, 20)
-    switch.Position = UDim2.new(1, -48, 0.5, -10)
-    switch.BackgroundColor3 = default and Theme.Primary or Color3.fromRGB(50, 45, 70)
+    switch.Size = UDim2.new(0, 40, 0, 22)
+    switch.Position = UDim2.new(1, -52, 0.5, -11)
+    switch.BackgroundColor3 = Color3.fromRGB(50, 50, 65)
     switch.BorderSizePixel = 0
-    switch.Parent = frame
-    createCorner(switch, UDim.new(1, 0))
+    switch.Parent = item
+    
+    local switchCorner = Instance.new("UICorner")
+    switchCorner.CornerRadius = UDim.new(1, 0)
+    switchCorner.Parent = switch
     
     local knob = Instance.new("Frame")
-    knob.Size = UDim2.new(0, 14, 0, 14)
-    knob.Position = default and UDim2.new(1, -17, 0.5, -7) or UDim2.new(0, 3, 0.5, -7)
+    knob.Size = UDim2.new(0, 16, 0, 16)
+    knob.Position = UDim2.new(0, 3, 0.5, -8)
     knob.BackgroundColor3 = Color3.new(1, 1, 1)
     knob.BorderSizePixel = 0
     knob.Parent = switch
-    createCorner(knob, UDim.new(1, 0))
     
-    local isOn = default
+    local knobCorner = Instance.new("UICorner")
+    knobCorner.CornerRadius = UDim.new(1, 0)
+    knobCorner.Parent = knob
+    
+    -- Estado
+    local isOn = false
     
     local function setState(state)
         isOn = state
         if isOn then
-            switch.BackgroundColor3 = Theme.Primary
-            knob.Position = UDim2.new(1, -17, 0.5, -7)
+            switch.BackgroundColor3 = Color3.fromRGB(0, 220, 255)
+            knob.Position = UDim2.new(1, -19, 0.5, -8)
+            stroke.Color = Color3.fromRGB(0, 220, 255)
+            lbl.TextColor3 = Color3.fromRGB(0, 220, 255)
         else
-            switch.BackgroundColor3 = Color3.fromRGB(50, 45, 70)
-            knob.Position = UDim2.new(0, 3, 0.5, -7)
+            switch.BackgroundColor3 = Color3.fromRGB(50, 50, 65)
+            knob.Position = UDim2.new(0, 3, 0.5, -8)
+            stroke.Color = Color3.fromRGB(60, 60, 75)
+            lbl.TextColor3 = Color3.fromRGB(220, 220, 230)
         end
         if callback then callback(isOn) end
     end
     
-    frame.MouseButton1Click:Connect(function()
+    item.MouseButton1Click:Connect(function()
         setState(not isOn)
     end)
     
-    if callback then callback(default) end
     return setState
 end
 
-local function createSlider(parent, text, min, max, default, callback)
-    local frame = Instance.new("Frame")
-    frame.Size = UDim2.new(1, 0, 0, 52)
-    frame.BackgroundColor3 = Theme.Item
-    frame.BorderSizePixel = 0
-    frame.Parent = parent
-    createCorner(frame, UDim.new(0, 8))
-    
-    local label = Instance.new("TextLabel")
-    label.Size = UDim2.new(1, -20, 0, 18)
-    label.Position = UDim2.new(0, 10, 0, 4)
-    label.BackgroundTransparency = 1
-    label.Text = text .. ": " .. tostring(default)
-    label.TextColor3 = Theme.Text
-    label.Font = Enum.Font.GothamSemibold
-    label.TextSize = 12
-    label.TextXAlignment = Enum.TextXAlignment.Left
-    label.Parent = frame
-    
-    local track = Instance.new("Frame")
-    track.Size = UDim2.new(1, -24, 0, 6)
-    track.Position = UDim2.new(0, 12, 0, 32)
-    track.BackgroundColor3 = Color3.fromRGB(45, 38, 65)
-    track.BorderSizePixel = 0
-    track.Parent = frame
-    createCorner(track, UDim.new(1, 0))
-    
-    local pct = (default - min) / (max - min)
-    local fill = Instance.new("Frame")
-    fill.Size = UDim2.new(pct, 0, 1, 0)
-    fill.BackgroundColor3 = Theme.Primary
-    fill.BorderSizePixel = 0
-    fill.Parent = track
-    createCorner(fill, UDim.new(1, 0))
-    
-    local knob = Instance.new("Frame")
-    knob.Size = UDim2.new(0, 14, 0, 14)
-    knob.Position = UDim2.new(pct, -7, 0.5, -7)
-    knob.BackgroundColor3 = Color3.new(1, 1, 1)
-    knob.BorderSizePixel = 0
-    knob.ZIndex = 2
-    knob.Parent = track
-    createCorner(knob, UDim.new(1, 0))
-    
-    local value = default
-    local dragging = false
-    
-    local function updateFromX(absX)
-        local rel = math.clamp((absX - track.AbsolutePosition.X) / track.AbsoluteSize.X, 0, 1)
-        value = math.floor(min + (max - min) * rel)
-        fill.Size = UDim2.new(rel, 0, 1, 0)
-        knob.Position = UDim2.new(rel, -7, 0.5, -7)
-        label.Text = text .. ": " .. tostring(value)
-        if callback then callback(value) end
-    end
-    
-    track.InputBegan:Connect(function(input)
-        if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
-            dragging = true
-            updateFromX(input.Position.X)
-        end
-    end)
-    
-    UserInputService.InputChanged:Connect(function(input)
-        if dragging and (input.UserInputType == Enum.UserInputType.MouseMovement or input.UserInputType == Enum.UserInputType.Touch) then
-            updateFromX(input.Position.X)
-        end
-    end)
-    
-    UserInputService.InputEnded:Connect(function(input)
-        if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
-            dragging = false
-        end
-    end)
-end
-
-local function createButton(parent, text, callback, color)
-    local btn = Instance.new("TextButton")
-    btn.Size = UDim2.new(1, 0, 0, 34)
-    btn.BackgroundColor3 = color or Theme.Item
-    btn.TextColor3 = Theme.Text
-    btn.Text = text
-    btn.Font = Enum.Font.GothamBold
-    btn.TextSize = 12
-    btn.BorderSizePixel = 0
-    btn.AutoButtonColor = false
-    btn.Parent = parent
-    createCorner(btn, UDim.new(0, 8))
-    
-    btn.MouseEnter:Connect(function() btn.BackgroundColor3 = Theme.ItemHover end)
-    btn.MouseLeave:Connect(function() btn.BackgroundColor3 = color or Theme.Item end)
-    btn.MouseButton1Click:Connect(function()
-        if callback then callback() end
-    end)
-    
-    return btn
-end
-
 -- ========================================
---           ESP DE ROLES
+--           ESP LÓGICA
 -- ========================================
 local function getRole(targetPlayer)
     local char = targetPlayer.Character
@@ -477,13 +245,6 @@ local function getRole(targetPlayer)
     if hasTool("Knife") then return "Murderer" end
     if hasTool("Gun") or hasTool("Revolver") then return "Sheriff" end
     return "Innocent"
-end
-
-local function getRoleColor(role)
-    if role == "Murderer" then return Config.ColorMurderer end
-    if role == "Sheriff" then return Config.ColorSheriff end
-    if role == "Innocent" then return Config.ColorInnocent end
-    return Color3.fromRGB(180, 180, 180)
 end
 
 local function removeESP(targetPlayer)
@@ -514,14 +275,13 @@ local function createESP(targetPlayer)
     local head = char:FindFirstChild("Head")
     if head then
         local bb = Instance.new("BillboardGui")
-        bb.Name = "PhantomTag"
-        bb.Size = UDim2.new(0, 220, 0, 42)
-        bb.StudsOffset = Vector3.new(0, 2.6, 0)
+        bb.Size = UDim2.new(0, 200, 0, 30)
+        bb.StudsOffset = Vector3.new(0, 2.5, 0)
         bb.AlwaysOnTop = true
         bb.Parent = head
         
         local lbl = Instance.new("TextLabel")
-        lbl.Size = UDim2.new(1, 0, 0.5, 0)
+        lbl.Size = UDim2.new(1, 0, 1, 0)
         lbl.BackgroundTransparency = 1
         lbl.TextColor3 = Color3.new(1, 1, 1)
         lbl.TextStrokeTransparency = 0
@@ -531,21 +291,8 @@ local function createESP(targetPlayer)
         lbl.Text = ""
         lbl.Parent = bb
         
-        local dist = Instance.new("TextLabel")
-        dist.Size = UDim2.new(1, 0, 0.5, 0)
-        dist.Position = UDim2.new(0, 0, 0.5, 0)
-        dist.BackgroundTransparency = 1
-        dist.TextColor3 = Theme.Secondary
-        dist.TextStrokeTransparency = 0
-        dist.TextStrokeColor3 = Color3.new(0, 0, 0)
-        dist.Font = Enum.Font.GothamSemibold
-        dist.TextSize = 11
-        dist.Text = ""
-        dist.Parent = bb
-        
         State.ESPObjects[targetPlayer].Billboard = bb
-        State.ESPObjects[targetPlayer].NameLbl = lbl
-        State.ESPObjects[targetPlayer].DistLbl = dist
+        State.ESPObjects[targetPlayer].Label = lbl
     end
 end
 
@@ -559,7 +306,7 @@ local function updateESP(targetPlayer)
     end
     
     local role = getRole(targetPlayer)
-    local color = getRoleColor(role)
+    local color = ROLE_COLORS[role]
     local objs = State.ESPObjects[targetPlayer]
     
     if objs.Highlight then
@@ -567,19 +314,10 @@ local function updateESP(targetPlayer)
         objs.Highlight.OutlineColor = color
     end
     
-    if objs.NameLbl then
+    if objs.Label then
         local emoji = role == "Murderer" and "🔪" or role == "Sheriff" and "🔫" or role == "Innocent" and "😇" or "❓"
-        objs.NameLbl.Text = Config.ESPNames and (emoji .. " " .. targetPlayer.Name) or ""
-        objs.NameLbl.TextColor3 = color
-    end
-    
-    if objs.DistLbl then
-        if Config.ESPDistance and char:FindFirstChild("HumanoidRootPart") then
-            local dist = math.floor((camera.CFrame.Position - char.HumanoidRootPart.Position).Magnitude)
-            objs.DistLbl.Text = "[" .. dist .. "m]"
-        else
-            objs.DistLbl.Text = ""
-        end
+        objs.Label.Text = emoji .. " " .. targetPlayer.Name .. " [" .. role .. "]"
+        objs.Label.TextColor3 = color
     end
 end
 
@@ -594,7 +332,7 @@ local function startESPLoop()
     if State.ESPLoop then return end
     State.ESPLoop = true
     task.spawn(function()
-        while Config.ESPEnabled do
+        while Config.ESP do
             for _, p in ipairs(Players:GetPlayers()) do
                 if p ~= player then updateESP(p) end
             end
@@ -607,6 +345,120 @@ end
 -- ========================================
 --           MOVIMIENTO
 -- ========================================
-local function applySpeed(v)
+local function getHumanoid()
     local char = player.Character
-    if
+    if not char then return nil end
+    return char:FindFirstChildOfClass("Humanoid")
+end
+
+local function aplicarSpeed()
+    local hum = getHumanoid()
+    if hum then
+        hum.WalkSpeed = Config.Speed and SPEED_VALUE or originalSpeed
+    end
+end
+
+local function toggleJump(state)
+    if state then
+        if State.JumpConn then State.JumpConn:Disconnect() end
+        State.JumpConn = UserInputService.JumpRequest:Connect(function()
+            if Config.Jump then
+                local hum = getHumanoid()
+                if hum then
+                    hum:ChangeState(Enum.HumanoidStateType.Jumping)
+                end
+            end
+        end)
+    else
+        if State.JumpConn then
+            State.JumpConn:Disconnect()
+            State.JumpConn = nil
+        end
+    end
+end
+
+local function toggleNoclip(state)
+    if state then
+        if State.NoclipConn then State.NoclipConn:Disconnect() end
+        State.NoclipConn = RunService.Stepped:Connect(function()
+            if Config.Noclip then
+                local char = player.Character
+                if char then
+                    for _, part in ipairs(char:GetDescendants()) do
+                        if part:IsA("BasePart") then
+                            part.CanCollide = false
+                        end
+                    end
+                end
+            end
+        end)
+    else
+        if State.NoclipConn then
+            State.NoclipConn:Disconnect()
+            State.NoclipConn = nil
+        end
+        local char = player.Character
+        if char then
+            for _, part in ipairs(char:GetDescendants()) do
+                if part:IsA("BasePart") then
+                    part.CanCollide = true
+                end
+            end
+        end
+    end
+end
+
+-- ========================================
+--           CREAR ITEMS DEL PANEL
+-- ========================================
+crearItem("ESP", "🎯", function(s)
+    Config.ESP = s
+    if s then
+        startESPLoop()
+    else
+        clearESP()
+    end
+end)
+
+crearItem("Speed", "⚡", function(s)
+    Config.Speed = s
+    aplicarSpeed()
+end)
+
+crearItem("Infinite Jump", "🦘", function(s)
+    Config.Jump = s
+    toggleJump(s)
+end)
+
+crearItem("Noclip", "👻", function(s)
+    Config.Noclip = s
+    toggleNoclip(s)
+end)
+
+-- ========================================
+--           ABRIR / CERRAR
+-- ========================================
+OpenBtn.MouseButton1Click:Connect(function()
+    Panel.Visible = true
+    OpenBtn.Visible = false
+end)
+
+CloseBtn.MouseButton1Click:Connect(function()
+    Panel.Visible = false
+    OpenBtn.Visible = true
+end)
+
+-- ========================================
+--           LIMPIEZA
+-- ========================================
+Players.PlayerRemoving:Connect(function(p)
+    removeESP(p)
+end)
+
+player.CharacterAdded:Connect(function()
+    task.wait(1)
+    originalSpeed = 16
+    aplicarSpeed()
+end)
+
+print("✅ MM2 UI cargada - Toca el ⚙ para abrir")
