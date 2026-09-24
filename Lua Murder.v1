@@ -1,6 +1,6 @@
 --[[ =============================================
-     MM2 - UI Simple v2
-     ESP + Speed + Jump + Noclip + Fullbright + ESP Armas + Distancia
+     MM2 - UI Simple v3
+     Panel ancho + ESP Armas arreglado
      ============================================= ]]
 
 local Players = game:GetService("Players")
@@ -76,10 +76,10 @@ openStroke.Color = Color3.fromRGB(0, 220, 255)
 openStroke.Thickness = 2
 openStroke.Parent = OpenBtn
 
--- ===== PANEL =====
+-- ===== PANEL (más ancho y bajo) =====
 local Panel = Instance.new("Frame")
-Panel.Size = UDim2.new(0, 250, 0, 460)
-Panel.Position = UDim2.new(0.5, -125, 0.5, -230)
+Panel.Size = UDim2.new(0, 370, 0, 280)
+Panel.Position = UDim2.new(0.5, -185, 0.5, -140)
 Panel.BackgroundColor3 = Color3.fromRGB(18, 18, 24)
 Panel.BorderSizePixel = 0
 Panel.Visible = false
@@ -99,7 +99,7 @@ panelStroke.Parent = Panel
 
 -- ===== HEADER =====
 local Header = Instance.new("Frame")
-Header.Size = UDim2.new(1, 0, 0, 36)
+Header.Size = UDim2.new(1, 0, 0, 34)
 Header.BackgroundColor3 = Color3.fromRGB(25, 25, 32)
 Header.BorderSizePixel = 0
 Header.Parent = Panel
@@ -119,7 +119,7 @@ local TitleLbl = Instance.new("TextLabel")
 TitleLbl.Size = UDim2.new(1, -50, 1, 0)
 TitleLbl.Position = UDim2.new(0, 12, 0, 0)
 TitleLbl.BackgroundTransparency = 1
-TitleLbl.Text = "🎮 MM2 PANEL v2"
+TitleLbl.Text = "🎮 MM2 PANEL v3"
 TitleLbl.TextColor3 = Color3.fromRGB(0, 220, 255)
 TitleLbl.Font = Enum.Font.GothamBold
 TitleLbl.TextSize = 14
@@ -141,10 +141,10 @@ local closeCorner = Instance.new("UICorner")
 closeCorner.CornerRadius = UDim.new(1, 0)
 closeCorner.Parent = CloseBtn
 
--- ===== SCROLL DE ITEMS =====
+-- ===== GRID DE ITEMS (2 columnas) =====
 local ItemsHolder = Instance.new("ScrollingFrame")
-ItemsHolder.Size = UDim2.new(1, -16, 1, -50)
-ItemsHolder.Position = UDim2.new(0, 8, 0, 42)
+ItemsHolder.Size = UDim2.new(1, -16, 1, -46)
+ItemsHolder.Position = UDim2.new(0, 8, 0, 40)
 ItemsHolder.BackgroundTransparency = 1
 ItemsHolder.BorderSizePixel = 0
 ItemsHolder.ScrollBarThickness = 3
@@ -153,17 +153,17 @@ ItemsHolder.CanvasSize = UDim2.new(0, 0, 0, 0)
 ItemsHolder.AutomaticCanvasSize = Enum.AutomaticSize.Y
 ItemsHolder.Parent = Panel
 
-local ItemsLayout = Instance.new("UIListLayout")
-ItemsLayout.Padding = UDim.new(0, 6)
+local ItemsLayout = Instance.new("UIGridLayout")
+ItemsLayout.CellSize = UDim2.new(0, 168, 0, 48)
+ItemsLayout.CellPadding = UDim2.new(0, 6, 0, 6)
 ItemsLayout.SortOrder = Enum.SortOrder.LayoutOrder
 ItemsLayout.Parent = ItemsHolder
 
 -- ========================================
---           CREAR ITEM
+--           CREAR ITEM (versión compacta)
 -- ========================================
 local function crearItem(nombre, emoji, callback)
     local item = Instance.new("TextButton")
-    item.Size = UDim2.new(1, 0, 0, 46)
     item.BackgroundColor3 = Color3.fromRGB(28, 28, 36)
     item.Text = ""
     item.BorderSizePixel = 0
@@ -179,20 +179,33 @@ local function crearItem(nombre, emoji, callback)
     stroke.Thickness = 1.5
     stroke.Parent = item
     
+    -- Emoji arriba izquierda
+    local emojiLbl = Instance.new("TextLabel")
+    emojiLbl.Size = UDim2.new(0, 22, 0, 20)
+    emojiLbl.Position = UDim2.new(0, 8, 0, 5)
+    emojiLbl.BackgroundTransparency = 1
+    emojiLbl.Text = emoji
+    emojiLbl.TextSize = 16
+    emojiLbl.Font = Enum.Font.GothamBold
+    emojiLbl.TextXAlignment = Enum.TextXAlignment.Left
+    emojiLbl.Parent = item
+    
+    -- Nombre abajo izquierda
     local lbl = Instance.new("TextLabel")
-    lbl.Size = UDim2.new(1, -60, 1, 0)
-    lbl.Position = UDim2.new(0, 14, 0, 0)
+    lbl.Size = UDim2.new(1, -14, 0, 14)
+    lbl.Position = UDim2.new(0, 8, 1, -18)
     lbl.BackgroundTransparency = 1
-    lbl.Text = emoji .. "  " .. nombre
+    lbl.Text = nombre
     lbl.TextColor3 = Color3.fromRGB(220, 220, 230)
     lbl.Font = Enum.Font.GothamSemibold
-    lbl.TextSize = 13
+    lbl.TextSize = 10
     lbl.TextXAlignment = Enum.TextXAlignment.Left
     lbl.Parent = item
     
+    -- Switch mini arriba derecha
     local switch = Instance.new("Frame")
-    switch.Size = UDim2.new(0, 40, 0, 22)
-    switch.Position = UDim2.new(1, -52, 0.5, -11)
+    switch.Size = UDim2.new(0, 32, 0, 16)
+    switch.Position = UDim2.new(1, -40, 0, 6)
     switch.BackgroundColor3 = Color3.fromRGB(50, 50, 65)
     switch.BorderSizePixel = 0
     switch.Parent = item
@@ -202,8 +215,8 @@ local function crearItem(nombre, emoji, callback)
     switchCorner.Parent = switch
     
     local knob = Instance.new("Frame")
-    knob.Size = UDim2.new(0, 16, 0, 16)
-    knob.Position = UDim2.new(0, 3, 0.5, -8)
+    knob.Size = UDim2.new(0, 12, 0, 12)
+    knob.Position = UDim2.new(0, 2, 0.5, -6)
     knob.BackgroundColor3 = Color3.new(1, 1, 1)
     knob.BorderSizePixel = 0
     knob.Parent = switch
@@ -218,12 +231,12 @@ local function crearItem(nombre, emoji, callback)
         isOn = state
         if isOn then
             switch.BackgroundColor3 = Color3.fromRGB(0, 220, 255)
-            knob.Position = UDim2.new(1, -19, 0.5, -8)
+            knob.Position = UDim2.new(1, -14, 0.5, -6)
             stroke.Color = Color3.fromRGB(0, 220, 255)
             lbl.TextColor3 = Color3.fromRGB(0, 220, 255)
         else
             switch.BackgroundColor3 = Color3.fromRGB(50, 50, 65)
-            knob.Position = UDim2.new(0, 3, 0.5, -8)
+            knob.Position = UDim2.new(0, 2, 0.5, -6)
             stroke.Color = Color3.fromRGB(60, 60, 75)
             lbl.TextColor3 = Color3.fromRGB(220, 220, 230)
         end
@@ -374,24 +387,59 @@ local function startESPLoop()
 end
 
 -- ========================================
---           ESP DE ARMAS TIRADAS
+--           ESP DE ARMAS TIRADAS (ARREGLADO)
 -- ========================================
 local function isWeaponTool(obj)
     if not obj:IsA("Tool") then return false end
     local n = obj.Name:lower()
-    return n == "knife" or n == "gun" or n == "revolver"
+    return n == "knife" or n == "gun" or n == "revolver" or n:find("knife") or n:find("gun")
+end
+
+local function getWeaponColor(tool)
+    local n = tool.Name:lower()
+    if n:find("knife") then
+        return Color3.fromRGB(255, 140, 0)   -- Naranja para cuchillo
+    elseif n:find("gun") or n:find("revolver") then
+        return Color3.fromRGB(255, 220, 0)   -- Amarillo para pistola
+    end
+    return Color3.fromRGB(255, 220, 0)
 end
 
 local function findDroppedWeapons()
     local weapons = {}
-    local container = workspace:FindFirstChild("Dropped")
-    if container then
-        for _, obj in ipairs(container:GetChildren()) do
-            if isWeaponTool(obj) and obj:FindFirstChild("Handle") then
+    local seen = {}
+    
+    -- 1. Buscar en workspace.Dropped
+    local dropped = workspace:FindFirstChild("Dropped")
+    if dropped then
+        for _, obj in ipairs(dropped:GetChildren()) do
+            if isWeaponTool(obj) and not seen[obj] then
+                seen[obj] = true
                 table.insert(weapons, obj)
             end
         end
     end
+    
+    -- 2. Buscar directamente en workspace (a veces las armas caen ahí)
+    for _, obj in ipairs(workspace:GetChildren()) do
+        if isWeaponTool(obj) and not seen[obj] then
+            seen[obj] = true
+            table.insert(weapons, obj)
+        end
+    end
+    
+    -- 3. Buscar en otros contenedores comunes
+    for _, container in ipairs(workspace:GetChildren()) do
+        if container:IsA("Folder") and container.Name ~= "Dropped" then
+            for _, obj in ipairs(container:GetChildren()) do
+                if isWeaponTool(obj) and not seen[obj] then
+                    seen[obj] = true
+                    table.insert(weapons, obj)
+                end
+            end
+        end
+    end
+    
     return weapons
 end
 
@@ -408,11 +456,15 @@ local function updateWeaponESP()
     
     for _, tool in ipairs(currentWeapons) do
         currentSet[tool] = true
-        if not State.ESPArmasObjects[tool] then
+        if not State.ESPArmasObjects[tool] or not State.ESPArmasObjects[tool].Parent then
+            if State.ESPArmasObjects[tool] then
+                State.ESPArmasObjects[tool]:Destroy()
+            end
             local hl = Instance.new("Highlight")
-            hl.FillColor = Color3.fromRGB(255, 220, 0)
-            hl.OutlineColor = Color3.fromRGB(255, 220, 0)
-            hl.FillTransparency = 0.4
+            local color = getWeaponColor(tool)
+            hl.FillColor = color
+            hl.OutlineColor = color
+            hl.FillTransparency = 0.3
             hl.OutlineTransparency = 0
             hl.DepthMode = Enum.HighlightDepthMode.AlwaysOnTop
             hl.Adornee = tool
@@ -421,7 +473,6 @@ local function updateWeaponESP()
         end
     end
     
-    -- Limpiar armas que ya no están
     for tool, obj in pairs(State.ESPArmasObjects) do
         if not currentSet[tool] or not tool.Parent then
             if obj and obj.Destroy then obj:Destroy() end
@@ -436,7 +487,7 @@ local function startArmasLoop()
     task.spawn(function()
         while Config.ESPArmas do
             updateWeaponESP()
-            task.wait(0.5)
+            task.wait(0.4)
         end
         clearWeaponESP()
         State.ArmasLoop = false
@@ -544,11 +595,11 @@ crearItem("ESP Roles", "🎯", function(s)
     if s then startESPLoop() else clearESP() end
 end)
 
-crearItem("ESP Distancia", "📏", function(s)
+crearItem("Distancia", "📏", function(s)
     Config.ESPDistancia = s
 end)
 
-crearItem("ESP Armas Tiradas", "🔫", function(s)
+crearItem("Armas ESP", "🔫", function(s)
     Config.ESPArmas = s
     if s then startArmasLoop() else clearWeaponESP() end
 end)
@@ -558,7 +609,7 @@ crearItem("Speed", "⚡", function(s)
     aplicarSpeed()
 end)
 
-crearItem("Infinite Jump", "🦘", function(s)
+crearItem("Inf Jump", "🦘", function(s)
     Config.Jump = s
     toggleJump(s)
 end)
@@ -599,4 +650,4 @@ player.CharacterAdded:Connect(function()
     aplicarSpeed()
 end)
 
-print("✅ MM2 UI v2 cargada - 7 funciones listas")
+print("✅ MM2 UI v3 cargada")
