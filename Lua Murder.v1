@@ -1,7 +1,4 @@
---[[ =============================================
-     MM2 PANEL v5 - ARREGLADO
-     ============================================= ]]
-warn("[MM2 Panel v5] Iniciando...")
+--[[ MM2 PANEL v2.1 - 7 items + Caja 2D ]]
 
 local Players = game:GetService("Players")
 local RunService = game:GetService("RunService")
@@ -11,20 +8,11 @@ local Lighting = game:GetService("Lighting")
 local player = Players.LocalPlayer
 local camera = workspace.CurrentCamera
 
-warn("[MM2 Panel v5] Servicios cargados")
-
--- ========================================
---           CONFIG
--- ========================================
 local Config = {
     ESP = false,
     ESPDistancia = false,
-    ESPCaja2D = false,
-    ESPTracer = false,
-    ESPArmaMano = false,
     ESPArmas = false,
-    AlertaMurder = false,
-    AntiFling = false,
+    ESPCaja2D = false,
     Speed = false,
     Jump = false,
     Noclip = false,
@@ -39,11 +27,8 @@ local State = {
     ESPArmasObjects = {},
     ESPLoop = false,
     ArmasLoop = false,
-    AlertaLoop = false,
     JumpConn = nil,
     NoclipConn = nil,
-    AntiFlingConn = nil,
-    Minimized = false,
 }
 
 local ROLE_COLORS = {
@@ -53,17 +38,12 @@ local ROLE_COLORS = {
     Unknown  = Color3.fromRGB(180, 180, 180),
 }
 
--- ========================================
---           GUI BASE
--- ========================================
+-- GUI
 local ScreenGui = Instance.new("ScreenGui")
 ScreenGui.Name = "MM2_Panel"
 ScreenGui.ResetOnSpawn = false
 ScreenGui.IgnoreGuiInset = true
-ScreenGui.ZIndexBehavior = Enum.ZIndexBehavior.Sibling
 ScreenGui.Parent = player:WaitForChild("PlayerGui")
-
-warn("[MM2 Panel v5] ScreenGui creado")
 
 -- Botón abrir
 local OpenBtn = Instance.new("TextButton")
@@ -79,19 +59,19 @@ OpenBtn.Active = true
 OpenBtn.Draggable = true
 OpenBtn.Parent = ScreenGui
 
-local openCorner = Instance.new("UICorner")
-openCorner.CornerRadius = UDim.new(1, 0)
-openCorner.Parent = OpenBtn
+local c1 = Instance.new("UICorner")
+c1.CornerRadius = UDim.new(1, 0)
+c1.Parent = OpenBtn
 
-local openStroke = Instance.new("UIStroke")
-openStroke.Color = Color3.fromRGB(0, 220, 255)
-openStroke.Thickness = 2
-openStroke.Parent = OpenBtn
+local s1 = Instance.new("UIStroke")
+s1.Color = Color3.fromRGB(0, 220, 255)
+s1.Thickness = 2
+s1.Parent = OpenBtn
 
 -- Panel
 local Panel = Instance.new("Frame")
-Panel.Size = UDim2.new(0, 390, 0, 340)
-Panel.Position = UDim2.new(0.5, -195, 0.5, -170)
+Panel.Size = UDim2.new(0, 380, 0, 280)
+Panel.Position = UDim2.new(0.5, -190, 0.5, -140)
 Panel.BackgroundColor3 = Color3.fromRGB(18, 18, 24)
 Panel.BorderSizePixel = 0
 Panel.Visible = false
@@ -99,15 +79,15 @@ Panel.Active = true
 Panel.Draggable = true
 Panel.Parent = ScreenGui
 
-local panelCorner = Instance.new("UICorner")
-panelCorner.CornerRadius = UDim.new(0, 12)
-panelCorner.Parent = Panel
+local c2 = Instance.new("UICorner")
+c2.CornerRadius = UDim.new(0, 12)
+c2.Parent = Panel
 
-local panelStroke = Instance.new("UIStroke")
-panelStroke.Color = Color3.fromRGB(0, 220, 255)
-panelStroke.Thickness = 1.5
-panelStroke.Transparency = 0.4
-panelStroke.Parent = Panel
+local s2 = Instance.new("UIStroke")
+s2.Color = Color3.fromRGB(0, 220, 255)
+s2.Thickness = 1.5
+s2.Transparency = 0.4
+s2.Parent = Panel
 
 -- Header
 local Header = Instance.new("Frame")
@@ -116,9 +96,9 @@ Header.BackgroundColor3 = Color3.fromRGB(25, 25, 32)
 Header.BorderSizePixel = 0
 Header.Parent = Panel
 
-local headerCorner = Instance.new("UICorner")
-headerCorner.CornerRadius = UDim.new(0, 12)
-headerCorner.Parent = Header
+local c3 = Instance.new("UICorner")
+c3.CornerRadius = UDim.new(0, 12)
+c3.Parent = Header
 
 local headerFix = Instance.new("Frame")
 headerFix.Size = UDim2.new(1, 0, 0, 12)
@@ -128,30 +108,15 @@ headerFix.BorderSizePixel = 0
 headerFix.Parent = Header
 
 local TitleLbl = Instance.new("TextLabel")
-TitleLbl.Size = UDim2.new(1, -100, 1, 0)
+TitleLbl.Size = UDim2.new(1, -50, 1, 0)
 TitleLbl.Position = UDim2.new(0, 12, 0, 0)
 TitleLbl.BackgroundTransparency = 1
-TitleLbl.Text = "🎮 MM2 PANEL v5"
+TitleLbl.Text = "🎮 MM2 PANEL v2.1"
 TitleLbl.TextColor3 = Color3.fromRGB(0, 220, 255)
 TitleLbl.Font = Enum.Font.GothamBold
 TitleLbl.TextSize = 13
 TitleLbl.TextXAlignment = Enum.TextXAlignment.Left
 TitleLbl.Parent = Header
-
-local MinBtn = Instance.new("TextButton")
-MinBtn.Size = UDim2.new(0, 24, 0, 24)
-MinBtn.Position = UDim2.new(1, -60, 0.5, -12)
-MinBtn.BackgroundColor3 = Color3.fromRGB(60, 60, 75)
-MinBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
-MinBtn.Text = "−"
-MinBtn.Font = Enum.Font.GothamBold
-MinBtn.TextSize = 14
-MinBtn.BorderSizePixel = 0
-MinBtn.Parent = Header
-
-local minCorner = Instance.new("UICorner")
-minCorner.CornerRadius = UDim.new(1, 0)
-minCorner.Parent = MinBtn
 
 local CloseBtn = Instance.new("TextButton")
 CloseBtn.Size = UDim2.new(0, 24, 0, 24)
@@ -164,13 +129,12 @@ CloseBtn.TextSize = 12
 CloseBtn.BorderSizePixel = 0
 CloseBtn.Parent = Header
 
-local closeCorner = Instance.new("UICorner")
-closeCorner.CornerRadius = UDim.new(1, 0)
-closeCorner.Parent = CloseBtn
+local c4 = Instance.new("UICorner")
+c4.CornerRadius = UDim.new(1, 0)
+c4.Parent = CloseBtn
 
--- Grid de items
+-- Grid
 local ItemsHolder = Instance.new("ScrollingFrame")
-ItemsHolder.Name = "ItemsHolder"
 ItemsHolder.Size = UDim2.new(1, -16, 1, -46)
 ItemsHolder.Position = UDim2.new(0, 8, 0, 40)
 ItemsHolder.BackgroundTransparency = 1
@@ -181,17 +145,13 @@ ItemsHolder.CanvasSize = UDim2.new(0, 0, 0, 0)
 ItemsHolder.AutomaticCanvasSize = Enum.AutomaticSize.Y
 ItemsHolder.Parent = Panel
 
-local ItemsLayout = Instance.new("UIGridLayout")
-ItemsLayout.CellSize = UDim2.new(0, 180, 0, 46)
-ItemsLayout.CellPadding = UDim2.new(0, 6, 0, 6)
-ItemsLayout.SortOrder = Enum.SortOrder.LayoutOrder
-ItemsLayout.Parent = ItemsHolder
+local Layout = Instance.new("UIGridLayout")
+Layout.CellSize = UDim2.new(0, 175, 0, 46)
+Layout.CellPadding = UDim2.new(0, 6, 0, 6)
+Layout.SortOrder = Enum.SortOrder.LayoutOrder
+Layout.Parent = ItemsHolder
 
-warn("[MM2 Panel v5] GUI base creada")
-
--- ========================================
---           FUNCIONES UI
--- ========================================
+-- Crear item
 local function crearItem(nombre, emoji, callback)
     local item = Instance.new("TextButton")
     item.BackgroundColor3 = Color3.fromRGB(28, 28, 36)
@@ -200,24 +160,24 @@ local function crearItem(nombre, emoji, callback)
     item.AutoButtonColor = false
     item.Parent = ItemsHolder
     
-    local corner = Instance.new("UICorner")
-    corner.CornerRadius = UDim.new(0, 8)
-    corner.Parent = item
+    local c = Instance.new("UICorner")
+    c.CornerRadius = UDim.new(0, 8)
+    c.Parent = item
     
     local stroke = Instance.new("UIStroke")
     stroke.Color = Color3.fromRGB(60, 60, 75)
     stroke.Thickness = 1.5
     stroke.Parent = item
     
-    local emojiLbl = Instance.new("TextLabel")
-    emojiLbl.Size = UDim2.new(0, 22, 0, 20)
-    emojiLbl.Position = UDim2.new(0, 8, 0, 4)
-    emojiLbl.BackgroundTransparency = 1
-    emojiLbl.Text = emoji
-    emojiLbl.TextSize = 15
-    emojiLbl.Font = Enum.Font.GothamBold
-    emojiLbl.TextXAlignment = Enum.TextXAlignment.Left
-    emojiLbl.Parent = item
+    local ej = Instance.new("TextLabel")
+    ej.Size = UDim2.new(0, 22, 0, 20)
+    ej.Position = UDim2.new(0, 8, 0, 4)
+    ej.BackgroundTransparency = 1
+    ej.Text = emoji
+    ej.TextSize = 15
+    ej.Font = Enum.Font.GothamBold
+    ej.TextXAlignment = Enum.TextXAlignment.Left
+    ej.Parent = item
     
     local lbl = Instance.new("TextLabel")
     lbl.Size = UDim2.new(1, -14, 0, 14)
@@ -230,40 +190,39 @@ local function crearItem(nombre, emoji, callback)
     lbl.TextXAlignment = Enum.TextXAlignment.Left
     lbl.Parent = item
     
-    local switch = Instance.new("Frame")
-    switch.Size = UDim2.new(0, 30, 0, 15)
-    switch.Position = UDim2.new(1, -38, 0, 6)
-    switch.BackgroundColor3 = Color3.fromRGB(50, 50, 65)
-    switch.BorderSizePixel = 0
-    switch.Parent = item
+    local sw = Instance.new("Frame")
+    sw.Size = UDim2.new(0, 30, 0, 15)
+    sw.Position = UDim2.new(1, -38, 0, 6)
+    sw.BackgroundColor3 = Color3.fromRGB(50, 50, 65)
+    sw.BorderSizePixel = 0
+    sw.Parent = item
     
-    local switchCorner = Instance.new("UICorner")
-    switchCorner.CornerRadius = UDim.new(1, 0)
-    switchCorner.Parent = switch
+    local c5 = Instance.new("UICorner")
+    c5.CornerRadius = UDim.new(1, 0)
+    c5.Parent = sw
     
-    local knob = Instance.new("Frame")
-    knob.Size = UDim2.new(0, 11, 0, 11)
-    knob.Position = UDim2.new(0, 2, 0.5, -5.5)
-    knob.BackgroundColor3 = Color3.new(1, 1, 1)
-    knob.BorderSizePixel = 0
-    knob.Parent = switch
+    local kn = Instance.new("Frame")
+    kn.Size = UDim2.new(0, 11, 0, 11)
+    kn.Position = UDim2.new(0, 2, 0.5, -5.5)
+    kn.BackgroundColor3 = Color3.new(1, 1, 1)
+    kn.BorderSizePixel = 0
+    kn.Parent = sw
     
-    local knobCorner = Instance.new("UICorner")
-    knobCorner.CornerRadius = UDim.new(1, 0)
-    knobCorner.Parent = knob
+    local c6 = Instance.new("UICorner")
+    c6.CornerRadius = UDim.new(1, 0)
+    c6.Parent = kn
     
     local isOn = false
-    
     local function setState(state)
         isOn = state
         if isOn then
-            switch.BackgroundColor3 = Color3.fromRGB(0, 220, 255)
-            knob.Position = UDim2.new(1, -13, 0.5, -5.5)
+            sw.BackgroundColor3 = Color3.fromRGB(0, 220, 255)
+            kn.Position = UDim2.new(1, -13, 0.5, -5.5)
             stroke.Color = Color3.fromRGB(0, 220, 255)
             lbl.TextColor3 = Color3.fromRGB(0, 220, 255)
         else
-            switch.BackgroundColor3 = Color3.fromRGB(50, 50, 65)
-            knob.Position = UDim2.new(0, 2, 0.5, -5.5)
+            sw.BackgroundColor3 = Color3.fromRGB(50, 50, 65)
+            kn.Position = UDim2.new(0, 2, 0.5, -5.5)
             stroke.Color = Color3.fromRGB(60, 60, 75)
             lbl.TextColor3 = Color3.fromRGB(220, 220, 230)
         end
@@ -275,104 +234,31 @@ local function crearItem(nombre, emoji, callback)
     item.MouseButton1Click:Connect(function()
         setState(not isOn)
     end)
-    
-    return setState
 end
 
-local function crearBoton(nombre, emoji, callback)
-    local item = Instance.new("TextButton")
-    item.BackgroundColor3 = Color3.fromRGB(35, 28, 42)
-    item.Text = ""
-    item.BorderSizePixel = 0
-    item.AutoButtonColor = false
-    item.Parent = ItemsHolder
-    
-    local corner = Instance.new("UICorner")
-    corner.CornerRadius = UDim.new(0, 8)
-    corner.Parent = item
-    
-    local stroke = Instance.new("UIStroke")
-    stroke.Color = Color3.fromRGB(140, 80, 200)
-    stroke.Thickness = 1.5
-    stroke.Parent = item
-    
-    local emojiLbl = Instance.new("TextLabel")
-    emojiLbl.Size = UDim2.new(0, 22, 0, 20)
-    emojiLbl.Position = UDim2.new(0, 8, 0, 4)
-    emojiLbl.BackgroundTransparency = 1
-    emojiLbl.Text = emoji
-    emojiLbl.TextSize = 15
-    emojiLbl.Font = Enum.Font.GothamBold
-    emojiLbl.TextXAlignment = Enum.TextXAlignment.Left
-    emojiLbl.Parent = item
-    
-    local lbl = Instance.new("TextLabel")
-    lbl.Size = UDim2.new(1, -40, 0, 14)
-    lbl.Position = UDim2.new(0, 8, 1, -17)
-    lbl.BackgroundTransparency = 1
-    lbl.Text = nombre
-    lbl.TextColor3 = Color3.fromRGB(220, 200, 255)
-    lbl.Font = Enum.Font.GothamSemibold
-    lbl.TextSize = 10
-    lbl.TextXAlignment = Enum.TextXAlignment.Left
-    lbl.Parent = item
-    
-    local arrow = Instance.new("TextLabel")
-    arrow.Size = UDim2.new(0, 20, 0, 20)
-    arrow.Position = UDim2.new(1, -28, 0.5, -10)
-    arrow.BackgroundTransparency = 1
-    arrow.Text = "▶"
-    arrow.TextColor3 = Color3.fromRGB(140, 80, 200)
-    arrow.TextSize = 14
-    arrow.Font = Enum.Font.GothamBold
-    arrow.Parent = item
-    
-    item.MouseButton1Click:Connect(function()
-        if callback then pcall(callback) end
-    end)
-    
-    return item
-end
-
-warn("[MM2 Panel v5] Funciones UI listas")
-
--- ========================================
---           ROLES
--- ========================================
+-- Roles
 local function getRole(targetPlayer)
     local char = targetPlayer.Character
     if not char then return "Unknown" end
-    local backpack = targetPlayer:FindFirstChild("Backpack")
-    
+    local bp = targetPlayer:FindFirstChild("Backpack")
     local function hasTool(name)
         if char:FindFirstChild(name) then return true end
-        if backpack and backpack:FindFirstChild(name) then return true end
+        if bp and bp:FindFirstChild(name) then return true end
         return false
     end
-    
     if hasTool("Knife") then return "Murderer" end
     if hasTool("Gun") or hasTool("Revolver") then return "Sheriff" end
     return "Innocent"
 end
 
-local function getRoleEmoji(role)
-    if role == "Murderer" then return "🔪" end
-    if role == "Sheriff" then return "🔫" end
-    if role == "Innocent" then return "😇" end
-    return "❓"
-end
-
--- ========================================
---           ESP
--- ========================================
-local function removeESP(targetPlayer)
-    if State.ESPObjects[targetPlayer] then
-        for _, obj in pairs(State.ESPObjects[targetPlayer]) do
+local function removeESP(p)
+    if State.ESPObjects[p] then
+        for _, obj in pairs(State.ESPObjects[p]) do
             if obj and obj.Destroy then
                 pcall(function() obj:Destroy() end)
             end
         end
-        State.ESPObjects[targetPlayer] = nil
+        State.ESPObjects[p] = nil
     end
 end
 
@@ -387,6 +273,7 @@ local function createESP(targetPlayer)
     State.ESPObjects[targetPlayer] = {}
     local objs = State.ESPObjects[targetPlayer]
     
+    -- Highlight
     local hl = Instance.new("Highlight")
     hl.FillTransparency = 0.5
     hl.OutlineTransparency = 0
@@ -395,6 +282,7 @@ local function createESP(targetPlayer)
     hl.Parent = char
     objs.Highlight = hl
     
+    -- Billboard (nombre + distancia)
     local head = char:FindFirstChild("Head")
     if head then
         local bb = Instance.new("BillboardGui")
@@ -426,11 +314,11 @@ local function createESP(targetPlayer)
         dist.Text = ""
         dist.Parent = bb
         
-        objs.Billboard = bb
         objs.Label = lbl
         objs.DistLabel = dist
     end
     
+    -- CAJA 2D (nuevo)
     local boxBB = Instance.new("BillboardGui")
     boxBB.Size = UDim2.new(0, 70, 0, 90)
     boxBB.StudsOffset = Vector3.new(0, 1.5, 0)
@@ -447,16 +335,7 @@ local function createESP(targetPlayer)
     boxFrame.Parent = boxBB
     
     objs.Box2D = boxBB
-    objs.Box2DFrame = boxFrame
-    
-    local tracer = Instance.new("Frame")
-    tracer.BackgroundColor3 = Color3.fromRGB(0, 220, 255)
-    tracer.BorderSizePixel = 0
-    tracer.AnchorPoint = Vector2.new(0, 0.5)
-    tracer.ZIndex = 2
-    tracer.Visible = false
-    tracer.Parent = ScreenGui
-    objs.Tracer = tracer
+    objs.BoxFrame = boxFrame
 end
 
 local function updateESP(targetPlayer)
@@ -481,14 +360,15 @@ local function updateESP(targetPlayer)
     end
     
     if objs.Label then
-        objs.Label.Text = getRoleEmoji(role) .. " " .. targetPlayer.Name
+        local emoji = role == "Murderer" and "🔪" or role == "Sheriff" and "🔫" or role == "Innocent" and "😇" or "❓"
+        objs.Label.Text = emoji .. " " .. targetPlayer.Name
         objs.Label.TextColor3 = color
     end
     
     if objs.DistLabel then
         if Config.ESPDistancia then
-            local dist = math.floor((camera.CFrame.Position - hrp.Position).Magnitude)
-            objs.DistLabel.Text = "[" .. dist .. "m]"
+            local d = math.floor((camera.CFrame.Position - hrp.Position).Magnitude)
+            objs.DistLabel.Text = "[" .. d .. "m]"
         else
             objs.DistLabel.Text = ""
         end
@@ -497,78 +377,10 @@ local function updateESP(targetPlayer)
     if objs.Box2D then
         if Config.ESPCaja2D then
             objs.Box2D.Enabled = true
-            objs.Box2DFrame.BorderColor3 = color
+            objs.BoxFrame.BorderColor3 = color
         else
             objs.Box2D.Enabled = false
         end
-    end
-    
-    -- Tracer ARREGLADO (usa ViewportSize en vez de ScreenGui.AbsoluteSize)
-    if objs.Tracer then
-        if Config.ESPTracer then
-            local screenPos, onScreen = camera:WorldToViewportPoint(hrp.Position)
-            if onScreen and screenPos.Z > 0 then
-                local vp = camera.ViewportSize
-                local originX = vp.X * 0.5
-                local originY = vp.Y - 20
-                local targetX = screenPos.X
-                local targetY = screenPos.Y
-                local dx = targetX - originX
-                local dy = targetY - originY
-                local length = math.sqrt(dx*dx + dy*dy)
-                local angle = math.deg(math.atan2(dy, dx))
-                
-                objs.Tracer.Position = UDim2.new(0, originX, 0, originY)
-                objs.Tracer.Size = UDim2.new(0, length, 0, 1.5)
-                objs.Tracer.Rotation = angle
-                objs.Tracer.BackgroundColor3 = color
-                objs.Tracer.Visible = true
-            else
-                objs.Tracer.Visible = false
-            end
-        else
-            objs.Tracer.Visible = false
-        end
-    end
-    
-    -- Arma en mano
-    if Config.ESPArmaMano then
-        local handTool = nil
-        for _, child in ipairs(char:GetChildren()) do
-            if child:IsA("Tool") then
-                local n = child.Name:lower()
-                if n == "knife" or n == "gun" or n == "revolver" then
-                    handTool = child
-                    break
-                end
-            end
-        end
-        
-        if handTool and handTool:FindFirstChild("Handle") then
-            if not objs.HandWeaponHL or not objs.HandWeaponHL.Parent then
-                local hwl = Instance.new("Highlight")
-                local n = handTool.Name:lower()
-                local wColor = n:find("knife") and Color3.fromRGB(255, 140, 0) or Color3.fromRGB(255, 220, 0)
-                hwl.FillColor = wColor
-                hwl.OutlineColor = wColor
-                hwl.FillTransparency = 0.3
-                hwl.OutlineTransparency = 0
-                hwl.DepthMode = Enum.HighlightDepthMode.AlwaysOnTop
-                hwl.Adornee = handTool
-                hwl.Parent = handTool
-                objs.HandWeaponHL = hwl
-            end
-        else
-            if objs.HandWeaponHL and objs.HandWeaponHL.Parent then
-                pcall(function() objs.HandWeaponHL:Destroy() end)
-            end
-            objs.HandWeaponHL = nil
-        end
-    else
-        if objs.HandWeaponHL and objs.HandWeaponHL.Parent then
-            pcall(function() objs.HandWeaponHL:Destroy() end)
-        end
-        objs.HandWeaponHL = nil
     end
 end
 
@@ -583,53 +395,239 @@ local function startESPLoop()
     if State.ESPLoop then return end
     State.ESPLoop = true
     task.spawn(function()
-        while Config.ESP or Config.ESPCaja2D or Config.ESPTracer or Config.ESPArmaMano or Config.ESPDistancia do
+        while Config.ESP or Config.ESPCaja2D or Config.ESPDistancia do
             for _, p in ipairs(Players:GetPlayers()) do
                 if p ~= player then
                     pcall(function() updateESP(p) end)
                 end
             end
-            task.wait(0.15)
+            task.wait(0.2)
         end
         clearESP()
         State.ESPLoop = false
     end)
 end
 
--- ========================================
---           ESP ARMAS TIRADAS
--- ========================================
-local function isWeaponTool(obj)
+-- Armas tiradas
+local function isWeapon(obj)
     if not obj:IsA("Tool") then return false end
     local n = obj.Name:lower()
-    return n == "knife" or n == "gun" or n == "revolver" or n:find("knife") or n:find("gun")
+    return n == "knife" or n == "gun" or n == "revolver"
 end
 
-local function getWeaponColor(tool)
-    local n = tool.Name:lower()
-    if n:find("knife") then
-        return Color3.fromRGB(255, 140, 0)
-    end
-    return Color3.fromRGB(255, 220, 0)
-end
-
-local function findDroppedWeapons()
-    local weapons = {}
+local function findWeapons()
+    local list = {}
     local seen = {}
-    
-    local function scan(container)
-        for _, obj in ipairs(container:GetChildren()) do
-            if isWeaponTool(obj) and not seen[obj] and obj:FindFirstChild("Handle") then
-                seen[obj] = true
-                table.insert(weapons, obj)
+    local dropped = workspace:FindFirstChild("Dropped")
+    if dropped then
+        for _, o in ipairs(dropped:GetChildren()) do
+            if isWeapon(o) and o:FindFirstChild("Handle") and not seen[o] then
+                seen[o] = true
+                table.insert(list, o)
             end
         end
     end
-    
-    local dropped = workspace:FindFirstChild("Dropped")
-    if dropped then scan(dropped) end
-    
-    for _, container in ipairs(workspace:GetChildren()) do
-        if container:IsA("Folder") and container.Name ~= "Dropped" then
-            scan(container)
-     
+    for _, o in ipairs(workspace:GetChildren()) do
+        if isWeapon(o) and o:FindFirstChild("Handle") and not seen[o] then
+            seen[o] = true
+            table.insert(list, o)
+        end
+    end
+    return list
+end
+
+local function clearWeaponESP()
+    for _, obj in pairs(State.ESPArmasObjects) do
+        if obj and obj.Destroy then pcall(function() obj:Destroy() end) end
+    end
+    State.ESPArmasObjects = {}
+end
+
+local function updateWeaponESP()
+    local cur = findWeapons()
+    local set = {}
+    for _, t in ipairs(cur) do
+        set[t] = true
+        if not State.ESPArmasObjects[t] or not State.ESPArmasObjects[t].Parent then
+            if State.ESPArmasObjects[t] then pcall(function() State.ESPArmasObjects[t]:Destroy() end) end
+            local hl = Instance.new("Highlight")
+            local n = t.Name:lower()
+            local col = n:find("knife") and Color3.fromRGB(255, 140, 0) or Color3.fromRGB(255, 220, 0)
+            hl.FillColor = col
+            hl.OutlineColor = col
+            hl.FillTransparency = 0.3
+            hl.DepthMode = Enum.HighlightDepthMode.AlwaysOnTop
+            hl.Adornee = t
+            hl.Parent = t
+            State.ESPArmasObjects[t] = hl
+        end
+    end
+    for t, o in pairs(State.ESPArmasObjects) do
+        if not set[t] or not t.Parent then
+            if o and o.Destroy then pcall(function() o:Destroy() end) end
+            State.ESPArmasObjects[t] = nil
+        end
+    end
+end
+
+local function startArmasLoop()
+    if State.ArmasLoop then return end
+    State.ArmasLoop = true
+    task.spawn(function()
+        while Config.ESPArmas do
+            pcall(updateWeaponESP)
+            task.wait(0.4)
+        end
+        clearWeaponESP()
+        State.ArmasLoop = false
+    end)
+end
+
+-- Movimiento
+local function getHum()
+    local char = player.Character
+    if not char then return nil end
+    return char:FindFirstChildOfClass("Humanoid")
+end
+
+local function aplicarSpeed()
+    local hum = getHum()
+    if hum then
+        hum.WalkSpeed = Config.Speed and SPEED_VALUE or originalSpeed
+    end
+end
+
+local function toggleJump(state)
+    if state then
+        if State.JumpConn then State.JumpConn:Disconnect() end
+        State.JumpConn = UserInputService.JumpRequest:Connect(function()
+            if Config.Jump then
+                local hum = getHum()
+                if hum then hum:ChangeState(Enum.HumanoidStateType.Jumping) end
+            end
+        end)
+    else
+        if State.JumpConn then
+            State.JumpConn:Disconnect()
+            State.JumpConn = nil
+        end
+    end
+end
+
+local function toggleNoclip(state)
+    if state then
+        if State.NoclipConn then State.NoclipConn:Disconnect() end
+        State.NoclipConn = RunService.Stepped:Connect(function()
+            if Config.Noclip then
+                local char = player.Character
+                if char then
+                    for _, part in ipairs(char:GetDescendants()) do
+                        if part:IsA("BasePart") then part.CanCollide = false end
+                    end
+                end
+            end
+        end)
+    else
+        if State.NoclipConn then
+            State.NoclipConn:Disconnect()
+            State.NoclipConn = nil
+        end
+        local char = player.Character
+        if char then
+            for _, part in ipairs(char:GetDescendants()) do
+                if part:IsA("BasePart") then part.CanCollide = true end
+            end
+        end
+    end
+end
+
+-- Fullbright
+local origLight = {
+    Brightness = Lighting.Brightness,
+    ClockTime = Lighting.ClockTime,
+    FogEnd = Lighting.FogEnd,
+    GlobalShadows = Lighting.GlobalShadows,
+    Ambient = Lighting.Ambient,
+}
+
+local function aplicarFullbright(state)
+    if state then
+        Lighting.Brightness = 3
+        Lighting.ClockTime = 14
+        Lighting.FogEnd = 100000
+        Lighting.GlobalShadows = false
+        Lighting.Ambient = Color3.fromRGB(180, 180, 180)
+    else
+        Lighting.Brightness = origLight.Brightness
+        Lighting.ClockTime = origLight.ClockTime
+        Lighting.FogEnd = origLight.FogEnd
+        Lighting.GlobalShadows = origLight.GlobalShadows
+        Lighting.Ambient = origLight.Ambient
+    end
+end
+
+-- Crear items
+crearItem("ESP Roles", "🎯", function(s)
+    Config.ESP = s
+    if s then startESPLoop() end
+    if not s and not Config.ESPCaja2D and not Config.ESPDistancia then clearESP() end
+end)
+
+crearItem("Distancia", "📏", function(s)
+    Config.ESPDistancia = s
+    if s then startESPLoop() end
+end)
+
+crearItem("Caja 2D", "📦", function(s)
+    Config.ESPCaja2D = s
+    if s then startESPLoop() end
+end)
+
+crearItem("Armas Tiradas", "🔫", function(s)
+    Config.ESPArmas = s
+    if s then startArmasLoop() else clearWeaponESP() end
+end)
+
+crearItem("Speed", "⚡", function(s)
+    Config.Speed = s
+    aplicarSpeed()
+end)
+
+crearItem("Inf Jump", "🦘", function(s)
+    Config.Jump = s
+    toggleJump(s)
+end)
+
+crearItem("Noclip", "👻", function(s)
+    Config.Noclip = s
+    toggleNoclip(s)
+end)
+
+crearItem("Fullbright", "💡", function(s)
+    Config.Fullbright = s
+    aplicarFullbright(s)
+end)
+
+-- Abrir / Cerrar
+OpenBtn.MouseButton1Click:Connect(function()
+    Panel.Visible = true
+    OpenBtn.Visible = false
+end)
+
+CloseBtn.MouseButton1Click:Connect(function()
+    Panel.Visible = false
+    OpenBtn.Visible = true
+end)
+
+-- Limpieza
+Players.PlayerRemoving:Connect(function(p)
+    removeESP(p)
+end)
+
+player.CharacterAdded:Connect(function()
+    task.wait(1)
+    originalSpeed = 16
+    aplicarSpeed()
+end)
+
+warn("✅ MM2 PANEL v2.1 CARGADO - 8 items")
