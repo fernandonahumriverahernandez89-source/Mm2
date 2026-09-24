@@ -1,4 +1,6 @@
---[[ MM2 PANEL v2.1 - 7 items + Caja 2D ]]
+--[[ MM2 PANEL v2.2 - ARREGLADO
+     - ESP se re-crea automáticamente al respawnear
+     - ESP Armas busca en TODO workspace ]]
 
 local Players = game:GetService("Players")
 local RunService = game:GetService("RunService")
@@ -38,14 +40,15 @@ local ROLE_COLORS = {
     Unknown  = Color3.fromRGB(180, 180, 180),
 }
 
--- GUI
+-- ========================================
+--           GUI
+-- ========================================
 local ScreenGui = Instance.new("ScreenGui")
 ScreenGui.Name = "MM2_Panel"
 ScreenGui.ResetOnSpawn = false
 ScreenGui.IgnoreGuiInset = true
 ScreenGui.Parent = player:WaitForChild("PlayerGui")
 
--- Botón abrir
 local OpenBtn = Instance.new("TextButton")
 OpenBtn.Size = UDim2.new(0, 50, 0, 50)
 OpenBtn.Position = UDim2.new(0, 15, 0.45, 0)
@@ -68,7 +71,6 @@ s1.Color = Color3.fromRGB(0, 220, 255)
 s1.Thickness = 2
 s1.Parent = OpenBtn
 
--- Panel
 local Panel = Instance.new("Frame")
 Panel.Size = UDim2.new(0, 380, 0, 280)
 Panel.Position = UDim2.new(0.5, -190, 0.5, -140)
@@ -89,7 +91,6 @@ s2.Thickness = 1.5
 s2.Transparency = 0.4
 s2.Parent = Panel
 
--- Header
 local Header = Instance.new("Frame")
 Header.Size = UDim2.new(1, 0, 0, 34)
 Header.BackgroundColor3 = Color3.fromRGB(25, 25, 32)
@@ -111,7 +112,7 @@ local TitleLbl = Instance.new("TextLabel")
 TitleLbl.Size = UDim2.new(1, -50, 1, 0)
 TitleLbl.Position = UDim2.new(0, 12, 0, 0)
 TitleLbl.BackgroundTransparency = 1
-TitleLbl.Text = "🎮 MM2 PANEL v2.1"
+TitleLbl.Text = "🎮 MM2 PANEL v2.2"
 TitleLbl.TextColor3 = Color3.fromRGB(0, 220, 255)
 TitleLbl.Font = Enum.Font.GothamBold
 TitleLbl.TextSize = 13
@@ -133,7 +134,6 @@ local c4 = Instance.new("UICorner")
 c4.CornerRadius = UDim.new(1, 0)
 c4.Parent = CloseBtn
 
--- Grid
 local ItemsHolder = Instance.new("ScrollingFrame")
 ItemsHolder.Size = UDim2.new(1, -16, 1, -46)
 ItemsHolder.Position = UDim2.new(0, 8, 0, 40)
@@ -151,7 +151,6 @@ Layout.CellPadding = UDim2.new(0, 6, 0, 6)
 Layout.SortOrder = Enum.SortOrder.LayoutOrder
 Layout.Parent = ItemsHolder
 
--- Crear item
 local function crearItem(nombre, emoji, callback)
     local item = Instance.new("TextButton")
     item.BackgroundColor3 = Color3.fromRGB(28, 28, 36)
@@ -226,9 +225,7 @@ local function crearItem(nombre, emoji, callback)
             stroke.Color = Color3.fromRGB(60, 60, 75)
             lbl.TextColor3 = Color3.fromRGB(220, 220, 230)
         end
-        if callback then
-            pcall(callback, isOn)
-        end
+        if callback then pcall(callback, isOn) end
     end
     
     item.MouseButton1Click:Connect(function()
@@ -236,7 +233,9 @@ local function crearItem(nombre, emoji, callback)
     end)
 end
 
--- Roles
+-- ========================================
+--           ROLES
+-- ========================================
 local function getRole(targetPlayer)
     local char = targetPlayer.Character
     if not char then return "Unknown" end
@@ -251,6 +250,9 @@ local function getRole(targetPlayer)
     return "Innocent"
 end
 
+-- ========================================
+--           ESP - LIMPIAR
+-- ========================================
 local function removeESP(p)
     if State.ESPObjects[p] then
         for _, obj in pairs(State.ESPObjects[p]) do
@@ -262,6 +264,9 @@ local function removeESP(p)
     end
 end
 
+-- ========================================
+--           ESP - CREAR
+-- ========================================
 local function createESP(targetPlayer)
     if targetPlayer == player then return end
     local char = targetPlayer.Character
@@ -272,6 +277,9 @@ local function createESP(targetPlayer)
     removeESP(targetPlayer)
     State.ESPObjects[targetPlayer] = {}
     local objs = State.ESPObjects[targetPlayer]
+    
+    -- Guardar referencia del personaje
+    objs.Char = char
     
     -- Highlight
     local hl = Instance.new("Highlight")
@@ -318,7 +326,7 @@ local function createESP(targetPlayer)
         objs.DistLabel = dist
     end
     
-    -- CAJA 2D (nuevo)
+    -- Caja 2D
     local boxBB = Instance.new("BillboardGui")
     boxBB.Size = UDim2.new(0, 70, 0, 90)
     boxBB.StudsOffset = Vector3.new(0, 1.5, 0)
@@ -338,6 +346,9 @@ local function createESP(targetPlayer)
     objs.BoxFrame = boxFrame
 end
 
+-- ========================================
+--           ESP - ACTUALIZAR
+-- ========================================
 local function updateESP(targetPlayer)
     if targetPlayer == player then return end
     local char = targetPlayer.Character
@@ -345,27 +356,32 @@ local function updateESP(targetPlayer)
     local hrp = char:FindFirstChild("HumanoidRootPart")
     if not hrp then return end
     
-    if not State.ESPObjects[targetPlayer] then
-        createESP(targetPlayer)
-    end
     local objs = State.ESPObjects[targetPlayer]
+    
+    -- 🔧 FIX PRINCIPAL: Si el char cambió (respawn) o ya no existe, recrear
+    if not objs or objs.Char ~= char or not objs.Char.Parent then
+        removeESP(targetPlayer)
+        createESP(targetPlayer)
+        objs = State.ESPObjects[targetPlayer]
+    end
+    
     if not objs then return end
     
     local role = getRole(targetPlayer)
     local color = ROLE_COLORS[role]
     
-    if objs.Highlight then
+    if objs.Highlight and objs.Highlight.Parent then
         objs.Highlight.FillColor = color
         objs.Highlight.OutlineColor = color
     end
     
-    if objs.Label then
+    if objs.Label and objs.Label.Parent then
         local emoji = role == "Murderer" and "🔪" or role == "Sheriff" and "🔫" or role == "Innocent" and "😇" or "❓"
         objs.Label.Text = emoji .. " " .. targetPlayer.Name
         objs.Label.TextColor3 = color
     end
     
-    if objs.DistLabel then
+    if objs.DistLabel and objs.DistLabel.Parent then
         if Config.ESPDistancia then
             local d = math.floor((camera.CFrame.Position - hrp.Position).Magnitude)
             objs.DistLabel.Text = "[" .. d .. "m]"
@@ -374,7 +390,7 @@ local function updateESP(targetPlayer)
         end
     end
     
-    if objs.Box2D then
+    if objs.Box2D and objs.Box2D.Parent then
         if Config.ESPCaja2D then
             objs.Box2D.Enabled = true
             objs.BoxFrame.BorderColor3 = color
@@ -408,31 +424,52 @@ local function startESPLoop()
     end)
 end
 
--- Armas tiradas
-local function isWeapon(obj)
+-- ========================================
+--           🔧 ESP ARMAS TIRADAS (ARREGLADO)
+-- ========================================
+-- Busca armas en TODO workspace, sin importar dónde estén
+local function isDroppedWeapon(obj)
     if not obj:IsA("Tool") then return false end
+    if not obj:FindFirstChild("Handle") then return false end
+    
     local n = obj.Name:lower()
-    return n == "knife" or n == "gun" or n == "revolver"
+    -- Búsqueda flexible: "knife", "gun", "revolver" en cualquier parte del nombre
+    if not (n:find("knife") or n:find("gun") or n:find("revolver")) then
+        return false
+    end
+    
+    -- Debe estar en workspace (no equipado por jugador)
+    local parent = obj.Parent
+    if not parent then return false end
+    
+    -- Si el padre es un Character, está equipado → NO
+    if parent:IsA("Model") and parent:FindFirstChildOfClass("Humanoid") then
+        return false
+    end
+    
+    -- Si el padre es Backpack de jugador → NO
+    if parent:IsA("Backpack") then return false end
+    if parent.Name == "Backpack" then return false end
+    
+    -- Si está en workspace directa o en algún folder → SÍ
+    return true
 end
 
 local function findWeapons()
     local list = {}
     local seen = {}
-    local dropped = workspace:FindFirstChild("Dropped")
-    if dropped then
-        for _, o in ipairs(dropped:GetChildren()) do
-            if isWeapon(o) and o:FindFirstChild("Handle") and not seen[o] then
-                seen[o] = true
-                table.insert(list, o)
+    
+    -- Buscar en TODO workspace con GetDescendants
+    local ok, descendants = pcall(function() return workspace:GetDescendants() end)
+    if ok and descendants then
+        for _, obj in ipairs(descendants) do
+            if not seen[obj] and isDroppedWeapon(obj) then
+                seen[obj] = true
+                table.insert(list, obj)
             end
         end
     end
-    for _, o in ipairs(workspace:GetChildren()) do
-        if isWeapon(o) and o:FindFirstChild("Handle") and not seen[o] then
-            seen[o] = true
-            table.insert(list, o)
-        end
-    end
+    
     return list
 end
 
@@ -446,22 +483,29 @@ end
 local function updateWeaponESP()
     local cur = findWeapons()
     local set = {}
+    
     for _, t in ipairs(cur) do
         set[t] = true
         if not State.ESPArmasObjects[t] or not State.ESPArmasObjects[t].Parent then
-            if State.ESPArmasObjects[t] then pcall(function() State.ESPArmasObjects[t]:Destroy() end) end
+            if State.ESPArmasObjects[t] then 
+                pcall(function() State.ESPArmasObjects[t]:Destroy() end) 
+            end
+            
             local hl = Instance.new("Highlight")
             local n = t.Name:lower()
             local col = n:find("knife") and Color3.fromRGB(255, 140, 0) or Color3.fromRGB(255, 220, 0)
             hl.FillColor = col
             hl.OutlineColor = col
             hl.FillTransparency = 0.3
+            hl.OutlineTransparency = 0
             hl.DepthMode = Enum.HighlightDepthMode.AlwaysOnTop
             hl.Adornee = t
             hl.Parent = t
             State.ESPArmasObjects[t] = hl
         end
     end
+    
+    -- Limpiar armas que ya no están
     for t, o in pairs(State.ESPArmasObjects) do
         if not set[t] or not t.Parent then
             if o and o.Destroy then pcall(function() o:Destroy() end) end
@@ -476,14 +520,16 @@ local function startArmasLoop()
     task.spawn(function()
         while Config.ESPArmas do
             pcall(updateWeaponESP)
-            task.wait(0.4)
+            task.wait(0.6)  -- un poco más lento porque busca en todo workspace
         end
         clearWeaponESP()
         State.ArmasLoop = false
     end)
 end
 
--- Movimiento
+-- ========================================
+--           MOVIMIENTO
+-- ========================================
 local function getHum()
     local char = player.Character
     if not char then return nil end
@@ -541,7 +587,6 @@ local function toggleNoclip(state)
     end
 end
 
--- Fullbright
 local origLight = {
     Brightness = Lighting.Brightness,
     ClockTime = Lighting.ClockTime,
@@ -566,7 +611,9 @@ local function aplicarFullbright(state)
     end
 end
 
--- Crear items
+-- ========================================
+--           CREAR ITEMS
+-- ========================================
 crearItem("ESP Roles", "🎯", function(s)
     Config.ESP = s
     if s then startESPLoop() end
@@ -608,26 +655,12 @@ crearItem("Fullbright", "💡", function(s)
     aplicarFullbright(s)
 end)
 
--- Abrir / Cerrar
+-- ========================================
+--           ABRIR / CERRAR
+-- ========================================
 OpenBtn.MouseButton1Click:Connect(function()
     Panel.Visible = true
     OpenBtn.Visible = false
 end)
 
 CloseBtn.MouseButton1Click:Connect(function()
-    Panel.Visible = false
-    OpenBtn.Visible = true
-end)
-
--- Limpieza
-Players.PlayerRemoving:Connect(function(p)
-    removeESP(p)
-end)
-
-player.CharacterAdded:Connect(function()
-    task.wait(1)
-    originalSpeed = 16
-    aplicarSpeed()
-end)
-
-warn("✅ MM2 PANEL v2.1 CARGADO - 8 items")
