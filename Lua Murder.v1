@@ -1,14 +1,21 @@
---[[ MM2 PANEL v3.1 - Botón arreglado para celular ]]
+--[[ =========================================
+     PHANTOM HUB v4.0
+     Tabs + Glass + Notificaciones
+     Tema: Rojo Sangre
+     ========================================= ]]
 
 local Players = game:GetService("Players")
 local RunService = game:GetService("RunService")
 local UserInputService = game:GetService("UserInputService")
 local Lighting = game:GetService("Lighting")
+local TweenService = game:GetService("TweenService")
 
 local player = Players.LocalPlayer
 local camera = workspace.CurrentCamera
 
--- 🎨 TEMA ROJO SANGRE
+-- ========================================
+--           🎨 TEMA
+-- ========================================
 local Theme = {
     Primary     = Color3.fromRGB(220, 30, 40),
     PrimaryDark = Color3.fromRGB(140, 15, 25),
@@ -16,13 +23,17 @@ local Theme = {
     Background  = Color3.fromRGB(15, 8, 10),
     Header      = Color3.fromRGB(30, 15, 18),
     Item        = Color3.fromRGB(32, 18, 22),
+    ItemHover   = Color3.fromRGB(55, 25, 30),
     Text        = Color3.fromRGB(245, 235, 235),
     Off         = Color3.fromRGB(60, 40, 45),
+    TabActive   = Color3.fromRGB(220, 30, 40),
+    TabIdle     = Color3.fromRGB(40, 20, 25),
 }
 
 local Config = {
     ESP = false, ESPDistancia = false, ESPArmas = false, ESPCaja2D = false,
     Speed = false, Jump = false, Noclip = false, Fullbright = false,
+    AntiAFK = false,
 }
 
 local SPEED_VALUE = 50
@@ -30,8 +41,9 @@ local originalSpeed = 16
 
 local State = {
     ESPObjects = {}, ESPArmasObjects = {},
-    ESPLoop = false, ArmasLoop = false,
+    ESPLoop = false, ArmasLoop = false, AntiAFKConn = nil,
     JumpConn = nil, NoclipConn = nil,
+    CurrentTab = "ESP",
 }
 
 local ROLE_COLORS = {
@@ -41,100 +53,134 @@ local ROLE_COLORS = {
     Unknown  = Color3.fromRGB(180, 180, 180),
 }
 
--- GUI
+-- ========================================
+--           GUI BASE
+-- ========================================
 local ScreenGui = Instance.new("ScreenGui")
-ScreenGui.Name = "MM2_Panel"
+ScreenGui.Name = "PhantomHub"
 ScreenGui.ResetOnSpawn = false
 ScreenGui.IgnoreGuiInset = true
+ScreenGui.ZIndexBehavior = Enum.ZIndexBehavior.Sibling
 ScreenGui.Parent = player:WaitForChild("PlayerGui")
 
--- Botón abrir (SIN Draggable → así funciona el tap en celu)
+-- Botón abrir (glass)
 local OpenBtn = Instance.new("TextButton")
 OpenBtn.Size = UDim2.new(0, 52, 0, 52)
 OpenBtn.Position = UDim2.new(0, 15, 0.45, 0)
 OpenBtn.BackgroundColor3 = Theme.Background
+OpenBtn.BackgroundTransparency = 0.15
 OpenBtn.TextColor3 = Theme.Primary
-OpenBtn.Text = "🔪"
+OpenBtn.Text = "👻"
 OpenBtn.Font = Enum.Font.GothamBold
-OpenBtn.TextSize = 24
+OpenBtn.TextSize = 22
 OpenBtn.BorderSizePixel = 0
 OpenBtn.Active = true
--- 👇 CLAVE: quitamos Draggable para que el tap funcione
 OpenBtn.Parent = ScreenGui
 
-local c1 = Instance.new("UICorner")
-c1.CornerRadius = UDim.new(1, 0)
-c1.Parent = OpenBtn
+local cOpen = Instance.new("UICorner")
+cOpen.CornerRadius = UDim.new(1, 0)
+cOpen.Parent = OpenBtn
 
-local s1 = Instance.new("UIStroke")
-s1.Color = Theme.Primary
-s1.Thickness = 2
-s1.Parent = OpenBtn
+local sOpen = Instance.new("UIStroke")
+sOpen.Color = Theme.Primary
+sOpen.Thickness = 2
+sOpen.Parent = OpenBtn
 
--- Panel
+-- PANEL (Glass)
 local Panel = Instance.new("Frame")
-Panel.Size = UDim2.new(0, 380, 0, 280)
-Panel.Position = UDim2.new(0.5, -190, 0.5, -140)
+Panel.Size = UDim2.new(0, 400, 0, 300)
+Panel.Position = UDim2.new(0.5, -200, 0.5, -150)
 Panel.BackgroundColor3 = Theme.Background
+Panel.BackgroundTransparency = 0.15 -- 🪟 Efecto glass
 Panel.BorderSizePixel = 0
 Panel.Visible = false
 Panel.Active = true
-Panel.Draggable = true -- el panel SÍ se puede arrastrar
+Panel.Draggable = true
 Panel.Parent = ScreenGui
 
-local c2 = Instance.new("UICorner")
-c2.CornerRadius = UDim.new(0, 12)
-c2.Parent = Panel
+local cPanel = Instance.new("UICorner")
+cPanel.CornerRadius = UDim.new(0, 14)
+cPanel.Parent = Panel
 
-local s2 = Instance.new("UIStroke")
-s2.Color = Theme.Primary
-s2.Thickness = 1.5
-s2.Transparency = 0.3
-s2.Parent = Panel
+local sPanel = Instance.new("UIStroke")
+sPanel.Color = Theme.Primary
+sPanel.Thickness = 1.5
+sPanel.Transparency = 0.25
+sPanel.Parent = Panel
 
--- Header
+-- ===== HEADER =====
 local Header = Instance.new("Frame")
-Header.Size = UDim2.new(1, 0, 0, 34)
+Header.Size = UDim2.new(1, 0, 0, 38)
 Header.BackgroundColor3 = Theme.Header
+Header.BackgroundTransparency = 0.15
 Header.BorderSizePixel = 0
 Header.Parent = Panel
 
-local c3 = Instance.new("UICorner")
-c3.CornerRadius = UDim.new(0, 12)
-c3.Parent = Header
+local cHeader = Instance.new("UICorner")
+cHeader.CornerRadius = UDim.new(0, 14)
+cHeader.Parent = Header
 
 local headerFix = Instance.new("Frame")
-headerFix.Size = UDim2.new(1, 0, 0, 12)
-headerFix.Position = UDim2.new(0, 0, 1, -12)
+headerFix.Size = UDim2.new(1, 0, 0, 14)
+headerFix.Position = UDim2.new(0, 0, 1, -14)
 headerFix.BackgroundColor3 = Theme.Header
+headerFix.BackgroundTransparency = 0.15
 headerFix.BorderSizePixel = 0
 headerFix.Parent = Header
 
+-- Punto pulsante
 local dot = Instance.new("Frame")
 dot.Size = UDim2.new(0, 8, 0, 8)
-dot.Position = UDim2.new(0, 12, 0.5, -4)
+dot.Position = UDim2.new(0, 14, 0.5, -4)
 dot.BackgroundColor3 = Theme.Primary
 dot.BorderSizePixel = 0
 dot.Parent = Header
 
-local cdot = Instance.new("UICorner")
-cdot.CornerRadius = UDim.new(1, 0)
-cdot.Parent = dot
+local cDot = Instance.new("UICorner")
+cDot.CornerRadius = UDim.new(1, 0)
+cDot.Parent = dot
 
+task.spawn(function()
+    while dot.Parent do
+        local t1 = TweenService:Create(dot, TweenInfo.new(1, Enum.EasingStyle.Sine), {
+            BackgroundColor3 = Theme.Accent
+        })
+        t1:Play()
+        task.wait(1)
+        local t2 = TweenService:Create(dot, TweenInfo.new(1, Enum.EasingStyle.Sine), {
+            BackgroundColor3 = Theme.PrimaryDark
+        })
+        t2:Play()
+        task.wait(1)
+    end
+end)
+
+-- Título personalizado
 local TitleLbl = Instance.new("TextLabel")
-TitleLbl.Size = UDim2.new(1, -50, 1, 0)
-TitleLbl.Position = UDim2.new(0, 26, 0, 0)
+TitleLbl.Size = UDim2.new(1, -100, 1, 0)
+TitleLbl.Position = UDim2.new(0, 28, 0, 0)
 TitleLbl.BackgroundTransparency = 1
-TitleLbl.Text = "MM2 PANEL v3.1"
+TitleLbl.Text = "👻 PHANTOM HUB"
 TitleLbl.TextColor3 = Theme.Primary
 TitleLbl.Font = Enum.Font.GothamBold
-TitleLbl.TextSize = 13
+TitleLbl.TextSize = 14
 TitleLbl.TextXAlignment = Enum.TextXAlignment.Left
 TitleLbl.Parent = Header
 
+local VerLbl = Instance.new("TextLabel")
+VerLbl.Size = UDim2.new(0, 60, 1, 0)
+VerLbl.Position = UDim2.new(1, -90, 0, 0)
+VerLbl.BackgroundTransparency = 1
+VerLbl.Text = "v4.0"
+VerLbl.TextColor3 = Theme.Accent
+VerLbl.Font = Enum.Font.GothamBold
+VerLbl.TextSize = 11
+VerLbl.TextXAlignment = Enum.TextXAlignment.Right
+VerLbl.Parent = Header
+
 local CloseBtn = Instance.new("TextButton")
-CloseBtn.Size = UDim2.new(0, 24, 0, 24)
-CloseBtn.Position = UDim2.new(1, -30, 0.5, -12)
+CloseBtn.Size = UDim2.new(0, 26, 0, 26)
+CloseBtn.Position = UDim2.new(1, -32, 0.5, -13)
 CloseBtn.BackgroundColor3 = Theme.PrimaryDark
 CloseBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
 CloseBtn.Text = "✕"
@@ -143,35 +189,186 @@ CloseBtn.TextSize = 12
 CloseBtn.BorderSizePixel = 0
 CloseBtn.Parent = Header
 
-local c4 = Instance.new("UICorner")
-c4.CornerRadius = UDim.new(1, 0)
-c4.Parent = CloseBtn
+local cClose = Instance.new("UICorner")
+cClose.CornerRadius = UDim.new(1, 0)
+cClose.Parent = CloseBtn
 
--- Grid
-local ItemsHolder = Instance.new("ScrollingFrame")
-ItemsHolder.Size = UDim2.new(1, -16, 1, -46)
-ItemsHolder.Position = UDim2.new(0, 8, 0, 40)
-ItemsHolder.BackgroundTransparency = 1
-ItemsHolder.BorderSizePixel = 0
-ItemsHolder.ScrollBarThickness = 3
-ItemsHolder.ScrollBarImageColor3 = Theme.Primary
-ItemsHolder.CanvasSize = UDim2.new(0, 0, 0, 0)
-ItemsHolder.AutomaticCanvasSize = Enum.AutomaticSize.Y
-ItemsHolder.Parent = Panel
+-- ===== TABS BAR =====
+local TabBar = Instance.new("Frame")
+TabBar.Size = UDim2.new(1, -16, 0, 34)
+TabBar.Position = UDim2.new(0, 8, 0, 46)
+TabBar.BackgroundColor3 = Theme.Background
+TabBar.BackgroundTransparency = 0.3
+TabBar.BorderSizePixel = 0
+TabBar.Parent = Panel
 
-local Layout = Instance.new("UIGridLayout")
-Layout.CellSize = UDim2.new(0, 175, 0, 46)
-Layout.CellPadding = UDim2.new(0, 6, 0, 6)
-Layout.SortOrder = Enum.SortOrder.LayoutOrder
-Layout.Parent = ItemsHolder
+local cTabBar = Instance.new("UICorner")
+cTabBar.CornerRadius = UDim.new(0, 8)
+cTabBar.Parent = TabBar
 
-local function crearItem(nombre, emoji, callback)
+local TabList = Instance.new("UIListLayout")
+TabList.FillDirection = Enum.FillDirection.Horizontal
+TabList.HorizontalAlignment = Enum.HorizontalAlignment.Center
+TabList.VerticalAlignment = Enum.VerticalAlignment.Center
+TabList.Padding = UDim.new(0, 6)
+TabList.Parent = TabBar
+
+-- ===== CONTENEDOR DE CONTENIDO =====
+local ContentFrame = Instance.new("Frame")
+ContentFrame.Size = UDim2.new(1, -16, 1, -130)
+ContentFrame.Position = UDim2.new(0, 8, 0, 88)
+ContentFrame.BackgroundTransparency = 1
+ContentFrame.Parent = Panel
+
+-- ========================================
+--           SISTEMA DE TABS
+-- ========================================
+local Tabs = {}
+
+local function createTab(tabName)
+    -- Botón de tab
+    local tabBtn = Instance.new("TextButton")
+    tabBtn.Size = UDim2.new(0, 115, 0, 26)
+    tabBtn.BackgroundColor3 = Theme.TabIdle
+    tabBtn.TextColor3 = Theme.Text
+    tabBtn.Text = tabName
+    tabBtn.Font = Enum.Font.GothamBold
+    tabBtn.TextSize = 11
+    tabBtn.BorderSizePixel = 0
+    tabBtn.AutoButtonColor = false
+    tabBtn.Parent = TabBar
+    
+    local c = Instance.new("UICorner")
+    c.CornerRadius = UDim.new(0, 6)
+    c.Parent = tabBtn
+    
+    -- Contenido
+    local content = Instance.new("ScrollingFrame")
+    content.Size = UDim2.new(1, 0, 1, 0)
+    content.BackgroundTransparency = 1
+    content.BorderSizePixel = 0
+    content.ScrollBarThickness = 3
+    content.ScrollBarImageColor3 = Theme.Primary
+    content.CanvasSize = UDim2.new(0, 0, 0, 0)
+    content.AutomaticCanvasSize = Enum.AutomaticSize.Y
+    content.Visible = false
+    content.Parent = ContentFrame
+    
+    local layout = Instance.new("UIGridLayout")
+    layout.CellSize = UDim2.new(0, 184, 0, 44)
+    layout.CellPadding = UDim2.new(0, 6, 0, 6)
+    layout.SortOrder = Enum.SortOrder.LayoutOrder
+    layout.Parent = content
+    
+    Tabs[tabName] = { Button = tabBtn, Content = content }
+    
+    -- Al tocar la tab
+    tabBtn.MouseButton1Click:Connect(function()
+        for name, t in pairs(Tabs) do
+            t.Content.Visible = false
+            t.Button.BackgroundColor3 = Theme.TabIdle
+            t.Button.TextColor3 = Theme.Text
+        end
+        content.Visible = true
+        tabBtn.BackgroundColor3 = Theme.TabActive
+        tabBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
+        State.CurrentTab = tabName
+    end)
+    
+    return content
+end
+
+-- ========================================
+--           🔔 NOTIFICACIONES
+-- ========================================
+local NotifHolder = Instance.new("Frame")
+NotifHolder.Size = UDim2.new(0, 220, 0, 200)
+NotifHolder.Position = UDim2.new(1, -230, 0, 100)
+NotifHolder.BackgroundTransparency = 1
+NotifHolder.Parent = ScreenGui
+
+local NotifLayout = Instance.new("UIListLayout")
+NotifLayout.Padding = UDim.new(0, 6)
+NotifLayout.SortOrder = Enum.SortOrder.LayoutOrder
+NotifLayout.VerticalAlignment = Enum.VerticalAlignment.Top
+NotifLayout.Parent = NotifHolder
+
+local function notificar(texto, tipo)
+    local color = tipo == "off" and Theme.PrimaryDark or Theme.Primary
+    local icon = tipo == "off" and "⭕" or "✅"
+    
+    local notif = Instance.new("TextButton")
+    notif.Size = UDim2.new(1, 0, 0, 36)
+    notif.BackgroundColor3 = Theme.Background
+    notif.BackgroundTransparency = 0.1
+    notif.Text = ""
+    notif.BorderSizePixel = 0
+    notif.AutoButtonColor = false
+    notif.Parent = NotifHolder
+    
+    local c = Instance.new("UICorner")
+    c.CornerRadius = UDim.new(0, 8)
+    c.Parent = notif
+    
+    local s = Instance.new("UIStroke")
+    s.Color = color
+    s.Thickness = 1.5
+    s.Parent = notif
+    
+    local bar = Instance.new("Frame")
+    bar.Size = UDim2.new(0, 3, 1, -8)
+    bar.Position = UDim2.new(0, 4, 0, 4)
+    bar.BackgroundColor3 = color
+    bar.BorderSizePixel = 0
+    bar.Parent = notif
+    
+    local cbar = Instance.new("UICorner")
+    cbar.CornerRadius = UDim.new(1, 0)
+    cbar.Parent = bar
+    
+    local lbl = Instance.new("TextLabel")
+    lbl.Size = UDim2.new(1, -20, 1, 0)
+    lbl.Position = UDim2.new(0, 14, 0, 0)
+    lbl.BackgroundTransparency = 1
+    lbl.Text = icon .. " " .. texto
+    lbl.TextColor3 = Theme.Text
+    lbl.Font = Enum.Font.GothamSemibold
+    lbl.TextSize = 11
+    lbl.TextXAlignment = Enum.TextXAlignment.Left
+    lbl.Parent = notif
+    
+    -- Animación entrada
+    notif.Position = UDim2.new(1, 0, 0, 0)
+    TweenService:Create(notif, TweenInfo.new(0.3, Enum.EasingStyle.Quad, Enum.EasingDirection.Out), {
+        Position = UDim2.new(0, 0, 0, 0)
+    }):Play()
+    
+    -- Auto-eliminar
+    task.delay(2.5, function()
+        if notif and notif.Parent then
+            local t = TweenService:Create(notif, TweenInfo.new(0.3), {
+                Position = UDim2.new(1, 0, 0, 0),
+                BackgroundTransparency = 1
+            })
+            t:Play()
+            t.Completed:Connect(function()
+                pcall(function() notif:Destroy() end)
+            end)
+        end
+    end)
+end
+
+-- ========================================
+--           CREAR ITEM
+-- ========================================
+local function crearItem(parent, nombre, emoji, callback)
     local item = Instance.new("TextButton")
     item.BackgroundColor3 = Theme.Item
+    item.BackgroundTransparency = 0.1
     item.Text = ""
     item.BorderSizePixel = 0
     item.AutoButtonColor = false
-    item.Parent = ItemsHolder
+    item.Parent = parent
     
     local c = Instance.new("UICorner")
     c.CornerRadius = UDim.new(0, 8)
@@ -210,9 +407,9 @@ local function crearItem(nombre, emoji, callback)
     sw.BorderSizePixel = 0
     sw.Parent = item
     
-    local c5 = Instance.new("UICorner")
-    c5.CornerRadius = UDim.new(1, 0)
-    c5.Parent = sw
+    local csw = Instance.new("UICorner")
+    csw.CornerRadius = UDim.new(1, 0)
+    csw.Parent = sw
     
     local kn = Instance.new("Frame")
     kn.Size = UDim2.new(0, 11, 0, 11)
@@ -221,33 +418,37 @@ local function crearItem(nombre, emoji, callback)
     kn.BorderSizePixel = 0
     kn.Parent = sw
     
-    local c6 = Instance.new("UICorner")
-    c6.CornerRadius = UDim.new(1, 0)
-    c6.Parent = kn
+    local ckn = Instance.new("UICorner")
+    ckn.CornerRadius = UDim.new(1, 0)
+    ckn.Parent = kn
     
     local isOn = false
-    local function setState(state)
+    local function setState(state, notif)
         isOn = state
         if isOn then
             sw.BackgroundColor3 = Theme.Primary
             kn.Position = UDim2.new(1, -13, 0.5, -5.5)
             stroke.Color = Theme.Primary
             lbl.TextColor3 = Theme.Primary
+            if notif then notificar(nombre .. " activado", "on") end
         else
             sw.BackgroundColor3 = Theme.Off
             kn.Position = UDim2.new(0, 2, 0.5, -5.5)
             stroke.Color = Color3.fromRGB(80, 50, 55)
             lbl.TextColor3 = Theme.Text
+            if notif then notificar(nombre .. " desactivado", "off") end
         end
         if callback then pcall(callback, isOn) end
     end
     
     item.MouseButton1Click:Connect(function()
-        setState(not isOn)
+        setState(not isOn, true)
     end)
 end
 
--- Roles
+-- ========================================
+--           ROLES
+-- ========================================
 local function getRole(targetPlayer)
     local char = targetPlayer.Character
     if not char then return "Unknown" end
@@ -262,7 +463,9 @@ local function getRole(targetPlayer)
     return "Innocent"
 end
 
--- ESP
+-- ========================================
+--           ESP LÓGICA
+-- ========================================
 local function removeESP(p)
     if State.ESPObjects[p] then
         for _, obj in pairs(State.ESPObjects[p]) do
@@ -414,7 +617,9 @@ local function startESPLoop()
     end)
 end
 
--- Armas tiradas
+-- ========================================
+--           ARMAS TIRADAS
+-- ========================================
 local function isDroppedWeapon(obj)
     if not obj:IsA("Tool") then return false end
     if not obj:FindFirstChild("Handle") then return false end
@@ -427,239 +632,4 @@ local function isDroppedWeapon(obj)
     return true
 end
 
-local function findWeapons()
-    local list = {}
-    local seen = {}
-    local ok, descendants = pcall(function() return workspace:GetDescendants() end)
-    if ok and descendants then
-        for _, obj in ipairs(descendants) do
-            if not seen[obj] and isDroppedWeapon(obj) then
-                seen[obj] = true
-                table.insert(list, obj)
-            end
-        end
-    end
-    return list
-end
-
-local function clearWeaponESP()
-    for _, obj in pairs(State.ESPArmasObjects) do
-        if obj and obj.Destroy then pcall(function() obj:Destroy() end) end
-    end
-    State.ESPArmasObjects = {}
-end
-
-local function updateWeaponESP()
-    local cur = findWeapons()
-    local set = {}
-    for _, t in ipairs(cur) do
-        set[t] = true
-        if not State.ESPArmasObjects[t] or not State.ESPArmasObjects[t].Parent then
-            if State.ESPArmasObjects[t] then pcall(function() State.ESPArmasObjects[t]:Destroy() end) end
-            local hl = Instance.new("Highlight")
-            local n = t.Name:lower()
-            local col = n:find("knife") and Color3.fromRGB(255, 140, 0) or Color3.fromRGB(255, 220, 0)
-            hl.FillColor = col
-            hl.OutlineColor = col
-            hl.FillTransparency = 0.3
-            hl.OutlineTransparency = 0
-            hl.DepthMode = Enum.HighlightDepthMode.AlwaysOnTop
-            hl.Adornee = t
-            hl.Parent = t
-            State.ESPArmasObjects[t] = hl
-        end
-    end
-    for t, o in pairs(State.ESPArmasObjects) do
-        if not set[t] or not t.Parent then
-            if o and o.Destroy then pcall(function() o:Destroy() end) end
-            State.ESPArmasObjects[t] = nil
-        end
-    end
-end
-
-local function startArmasLoop()
-    if State.ArmasLoop then return end
-    State.ArmasLoop = true
-    task.spawn(function()
-        while Config.ESPArmas do
-            pcall(updateWeaponESP)
-            task.wait(0.6)
-        end
-        clearWeaponESP()
-        State.ArmasLoop = false
-    end)
-end
-
--- Movimiento
-local function getHum()
-    local char = player.Character
-    if not char then return nil end
-    return char:FindFirstChildOfClass("Humanoid")
-end
-
-local function aplicarSpeed()
-    local hum = getHum()
-    if hum then hum.WalkSpeed = Config.Speed and SPEED_VALUE or originalSpeed end
-end
-
-local function toggleJump(state)
-    if state then
-        if State.JumpConn then State.JumpConn:Disconnect() end
-        State.JumpConn = UserInputService.JumpRequest:Connect(function()
-            if Config.Jump then
-                local hum = getHum()
-                if hum then hum:ChangeState(Enum.HumanoidStateType.Jumping) end
-            end
-        end)
-    else
-        if State.JumpConn then
-            State.JumpConn:Disconnect()
-            State.JumpConn = nil
-        end
-    end
-end
-
-local function toggleNoclip(state)
-    if state then
-        if State.NoclipConn then State.NoclipConn:Disconnect() end
-        State.NoclipConn = RunService.Stepped:Connect(function()
-            if Config.Noclip then
-                local char = player.Character
-                if char then
-                    for _, part in ipairs(char:GetDescendants()) do
-                        if part:IsA("BasePart") then part.CanCollide = false end
-                    end
-                end
-            end
-        end)
-    else
-        if State.NoclipConn then
-            State.NoclipConn:Disconnect()
-            State.NoclipConn = nil
-        end
-        local char = player.Character
-        if char then
-            for _, part in ipairs(char:GetDescendants()) do
-                if part:IsA("BasePart") then part.CanCollide = true end
-            end
-        end
-    end
-end
-
-local origLight = {
-    Brightness = Lighting.Brightness,
-    ClockTime = Lighting.ClockTime,
-    FogEnd = Lighting.FogEnd,
-    GlobalShadows = Lighting.GlobalShadows,
-    Ambient = Lighting.Ambient,
-}
-
-local function aplicarFullbright(state)
-    if state then
-        Lighting.Brightness = 3
-        Lighting.ClockTime = 14
-        Lighting.FogEnd = 100000
-        Lighting.GlobalShadows = false
-        Lighting.Ambient = Color3.fromRGB(180, 180, 180)
-    else
-        Lighting.Brightness = origLight.Brightness
-        Lighting.ClockTime = origLight.ClockTime
-        Lighting.FogEnd = origLight.FogEnd
-        Lighting.GlobalShadows = origLight.GlobalShadows
-        Lighting.Ambient = origLight.Ambient
-    end
-end
-
--- Crear items
-crearItem("ESP Roles", "🎯", function(s)
-    Config.ESP = s
-    if s then startESPLoop() end
-    if not s and not Config.ESPCaja2D and not Config.ESPDistancia then clearESP() end
-end)
-
-crearItem("Distancia", "📏", function(s)
-    Config.ESPDistancia = s
-    if s then startESPLoop() end
-end)
-
-crearItem("Caja 2D", "📦", function(s)
-    Config.ESPCaja2D = s
-    if s then startESPLoop() end
-end)
-
-crearItem("Armas Tiradas", "🔫", function(s)
-    Config.ESPArmas = s
-    if s then startArmasLoop() else clearWeaponESP() end
-end)
-
-crearItem("Speed", "⚡", function(s)
-    Config.Speed = s
-    aplicarSpeed()
-end)
-
-crearItem("Inf Jump", "🦘", function(s)
-    Config.Jump = s
-    toggleJump(s)
-end)
-
-crearItem("Noclip", "👻", function(s)
-    Config.Noclip = s
-    toggleNoclip(s)
-end)
-
-crearItem("Fullbright", "💡", function(s)
-    Config.Fullbright = s
-    aplicarFullbright(s)
-end)
-
--- ========================================
---   🔧 ABRIR / CERRAR (ARREGLADO PARA CELU)
--- ========================================
--- Usamos InputBegan con Touch y Mouse para que funcione en celu Y PC
-local lastTap = 0
-
-OpenBtn.InputBegan:Connect(function(input)
-    if input.UserInputType == Enum.UserInputType.Touch or 
-       input.UserInputType == Enum.UserInputType.MouseButton1 then
-        
-        -- Evitar doble tap
-        local now = tick()
-        if now - lastTap < 0.3 then return end
-        lastTap = now
-        
-        Panel.Visible = true
-        OpenBtn.Visible = false
-    end
-end)
-
-CloseBtn.InputBegan:Connect(function(input)
-    if input.UserInputType == Enum.UserInputType.Touch or 
-       input.UserInputType == Enum.UserInputType.MouseButton1 then
-        Panel.Visible = false
-        OpenBtn.Visible = true
-    end
-end)
-
--- Watchers
-local function setupWatcher(p)
-    if p == player then return end
-    p.CharacterAdded:Connect(function()
-        task.wait(0.5)
-        removeESP(p)
-    end)
-end
-
-for _, p in ipairs(Players:GetPlayers()) do setupWatcher(p) end
-Players.PlayerAdded:Connect(setupWatcher)
-
-Players.PlayerRemoving:Connect(function(p)
-    removeESP(p)
-end)
-
-player.CharacterAdded:Connect(function()
-    task.wait(1)
-    originalSpeed = 16
-    aplicarSpeed()
-end)
-
-warn("✅ MM2 PANEL v3.1 cargado - Botón arreglado para celu")
+local function fin
