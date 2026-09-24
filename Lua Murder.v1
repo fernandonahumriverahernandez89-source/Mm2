@@ -1,11 +1,12 @@
 --[[ =============================================
-     MM2 - UI Simple
-     ESP + Speed + Jump + Noclip
+     MM2 - UI Simple v2
+     ESP + Speed + Jump + Noclip + Fullbright + ESP Armas + Distancia
      ============================================= ]]
 
 local Players = game:GetService("Players")
 local RunService = game:GetService("RunService")
 local UserInputService = game:GetService("UserInputService")
+local Lighting = game:GetService("Lighting")
 
 local player = Players.LocalPlayer
 local camera = workspace.CurrentCamera
@@ -18,6 +19,9 @@ local Config = {
     Speed = false,
     Jump = false,
     Noclip = false,
+    Fullbright = false,
+    ESPArmas = false,
+    ESPDistancia = false,
 }
 
 local SPEED_VALUE = 50
@@ -25,9 +29,11 @@ local originalSpeed = 16
 
 local State = {
     ESPObjects = {},
+    ESPArmasObjects = {},
     ESPLoop = false,
     JumpConn = nil,
     NoclipConn = nil,
+    ArmasLoop = false,
 }
 
 local ROLE_COLORS = {
@@ -47,7 +53,7 @@ ScreenGui.IgnoreGuiInset = true
 ScreenGui.ZIndexBehavior = Enum.ZIndexBehavior.Sibling
 ScreenGui.Parent = player:WaitForChild("PlayerGui")
 
--- ===== BOTÓN ABRIR (pequeño) =====
+-- ===== BOTÓN ABRIR =====
 local OpenBtn = Instance.new("TextButton")
 OpenBtn.Size = UDim2.new(0, 50, 0, 50)
 OpenBtn.Position = UDim2.new(0, 15, 0.45, 0)
@@ -70,10 +76,10 @@ openStroke.Color = Color3.fromRGB(0, 220, 255)
 openStroke.Thickness = 2
 openStroke.Parent = OpenBtn
 
--- ===== PANEL PRINCIPAL =====
+-- ===== PANEL =====
 local Panel = Instance.new("Frame")
-Panel.Size = UDim2.new(0, 240, 0, 290)
-Panel.Position = UDim2.new(0.5, -120, 0.5, -145)
+Panel.Size = UDim2.new(0, 250, 0, 460)
+Panel.Position = UDim2.new(0.5, -125, 0.5, -230)
 Panel.BackgroundColor3 = Color3.fromRGB(18, 18, 24)
 Panel.BorderSizePixel = 0
 Panel.Visible = false
@@ -113,7 +119,7 @@ local TitleLbl = Instance.new("TextLabel")
 TitleLbl.Size = UDim2.new(1, -50, 1, 0)
 TitleLbl.Position = UDim2.new(0, 12, 0, 0)
 TitleLbl.BackgroundTransparency = 1
-TitleLbl.Text = "🎮 MM2 PANEL"
+TitleLbl.Text = "🎮 MM2 PANEL v2"
 TitleLbl.TextColor3 = Color3.fromRGB(0, 220, 255)
 TitleLbl.Font = Enum.Font.GothamBold
 TitleLbl.TextSize = 14
@@ -135,24 +141,29 @@ local closeCorner = Instance.new("UICorner")
 closeCorner.CornerRadius = UDim.new(1, 0)
 closeCorner.Parent = CloseBtn
 
--- ===== CONTENEDOR DE BOTONES =====
-local ItemsHolder = Instance.new("Frame")
+-- ===== SCROLL DE ITEMS =====
+local ItemsHolder = Instance.new("ScrollingFrame")
 ItemsHolder.Size = UDim2.new(1, -16, 1, -50)
 ItemsHolder.Position = UDim2.new(0, 8, 0, 42)
 ItemsHolder.BackgroundTransparency = 1
+ItemsHolder.BorderSizePixel = 0
+ItemsHolder.ScrollBarThickness = 3
+ItemsHolder.ScrollBarImageColor3 = Color3.fromRGB(0, 220, 255)
+ItemsHolder.CanvasSize = UDim2.new(0, 0, 0, 0)
+ItemsHolder.AutomaticCanvasSize = Enum.AutomaticSize.Y
 ItemsHolder.Parent = Panel
 
 local ItemsLayout = Instance.new("UIListLayout")
-ItemsLayout.Padding = UDim.new(0, 8)
+ItemsLayout.Padding = UDim.new(0, 6)
 ItemsLayout.SortOrder = Enum.SortOrder.LayoutOrder
 ItemsLayout.Parent = ItemsHolder
 
 -- ========================================
---           FUNCIÓN CREAR BOTÓN
+--           CREAR ITEM
 -- ========================================
 local function crearItem(nombre, emoji, callback)
     local item = Instance.new("TextButton")
-    item.Size = UDim2.new(1, 0, 0, 48)
+    item.Size = UDim2.new(1, 0, 0, 46)
     item.BackgroundColor3 = Color3.fromRGB(28, 28, 36)
     item.Text = ""
     item.BorderSizePixel = 0
@@ -175,11 +186,10 @@ local function crearItem(nombre, emoji, callback)
     lbl.Text = emoji .. "  " .. nombre
     lbl.TextColor3 = Color3.fromRGB(220, 220, 230)
     lbl.Font = Enum.Font.GothamSemibold
-    lbl.TextSize = 14
+    lbl.TextSize = 13
     lbl.TextXAlignment = Enum.TextXAlignment.Left
     lbl.Parent = item
     
-    -- Switch visual
     local switch = Instance.new("Frame")
     switch.Size = UDim2.new(0, 40, 0, 22)
     switch.Position = UDim2.new(1, -52, 0.5, -11)
@@ -202,7 +212,6 @@ local function crearItem(nombre, emoji, callback)
     knobCorner.CornerRadius = UDim.new(1, 0)
     knobCorner.Parent = knob
     
-    -- Estado
     local isOn = false
     
     local function setState(state)
@@ -229,7 +238,7 @@ local function crearItem(nombre, emoji, callback)
 end
 
 -- ========================================
---           ESP LÓGICA
+--           ESP DE ROLES
 -- ========================================
 local function getRole(targetPlayer)
     local char = targetPlayer.Character
@@ -275,13 +284,13 @@ local function createESP(targetPlayer)
     local head = char:FindFirstChild("Head")
     if head then
         local bb = Instance.new("BillboardGui")
-        bb.Size = UDim2.new(0, 200, 0, 30)
-        bb.StudsOffset = Vector3.new(0, 2.5, 0)
+        bb.Size = UDim2.new(0, 220, 0, 42)
+        bb.StudsOffset = Vector3.new(0, 2.8, 0)
         bb.AlwaysOnTop = true
         bb.Parent = head
         
         local lbl = Instance.new("TextLabel")
-        lbl.Size = UDim2.new(1, 0, 1, 0)
+        lbl.Size = UDim2.new(1, 0, 0.6, 0)
         lbl.BackgroundTransparency = 1
         lbl.TextColor3 = Color3.new(1, 1, 1)
         lbl.TextStrokeTransparency = 0
@@ -291,8 +300,21 @@ local function createESP(targetPlayer)
         lbl.Text = ""
         lbl.Parent = bb
         
+        local dist = Instance.new("TextLabel")
+        dist.Size = UDim2.new(1, 0, 0.4, 0)
+        dist.Position = UDim2.new(0, 0, 0.6, 0)
+        dist.BackgroundTransparency = 1
+        dist.TextColor3 = Color3.fromRGB(0, 220, 255)
+        dist.TextStrokeTransparency = 0
+        dist.TextStrokeColor3 = Color3.new(0, 0, 0)
+        dist.Font = Enum.Font.GothamSemibold
+        dist.TextSize = 11
+        dist.Text = ""
+        dist.Parent = bb
+        
         State.ESPObjects[targetPlayer].Billboard = bb
         State.ESPObjects[targetPlayer].Label = lbl
+        State.ESPObjects[targetPlayer].DistLabel = dist
     end
 end
 
@@ -316,8 +338,17 @@ local function updateESP(targetPlayer)
     
     if objs.Label then
         local emoji = role == "Murderer" and "🔪" or role == "Sheriff" and "🔫" or role == "Innocent" and "😇" or "❓"
-        objs.Label.Text = emoji .. " " .. targetPlayer.Name .. " [" .. role .. "]"
+        objs.Label.Text = emoji .. " " .. targetPlayer.Name
         objs.Label.TextColor3 = color
+    end
+    
+    if objs.DistLabel then
+        if Config.ESPDistancia then
+            local dist = math.floor((camera.CFrame.Position - char.HumanoidRootPart.Position).Magnitude)
+            objs.DistLabel.Text = "[" .. dist .. "m]"
+        else
+            objs.DistLabel.Text = ""
+        end
     end
 end
 
@@ -339,6 +370,76 @@ local function startESPLoop()
             task.wait(0.3)
         end
         State.ESPLoop = false
+    end)
+end
+
+-- ========================================
+--           ESP DE ARMAS TIRADAS
+-- ========================================
+local function isWeaponTool(obj)
+    if not obj:IsA("Tool") then return false end
+    local n = obj.Name:lower()
+    return n == "knife" or n == "gun" or n == "revolver"
+end
+
+local function findDroppedWeapons()
+    local weapons = {}
+    local container = workspace:FindFirstChild("Dropped")
+    if container then
+        for _, obj in ipairs(container:GetChildren()) do
+            if isWeaponTool(obj) and obj:FindFirstChild("Handle") then
+                table.insert(weapons, obj)
+            end
+        end
+    end
+    return weapons
+end
+
+local function clearWeaponESP()
+    for tool, obj in pairs(State.ESPArmasObjects) do
+        if obj and obj.Destroy then obj:Destroy() end
+    end
+    State.ESPArmasObjects = {}
+end
+
+local function updateWeaponESP()
+    local currentWeapons = findDroppedWeapons()
+    local currentSet = {}
+    
+    for _, tool in ipairs(currentWeapons) do
+        currentSet[tool] = true
+        if not State.ESPArmasObjects[tool] then
+            local hl = Instance.new("Highlight")
+            hl.FillColor = Color3.fromRGB(255, 220, 0)
+            hl.OutlineColor = Color3.fromRGB(255, 220, 0)
+            hl.FillTransparency = 0.4
+            hl.OutlineTransparency = 0
+            hl.DepthMode = Enum.HighlightDepthMode.AlwaysOnTop
+            hl.Adornee = tool
+            hl.Parent = tool
+            State.ESPArmasObjects[tool] = hl
+        end
+    end
+    
+    -- Limpiar armas que ya no están
+    for tool, obj in pairs(State.ESPArmasObjects) do
+        if not currentSet[tool] or not tool.Parent then
+            if obj and obj.Destroy then obj:Destroy() end
+            State.ESPArmasObjects[tool] = nil
+        end
+    end
+end
+
+local function startArmasLoop()
+    if State.ArmasLoop then return end
+    State.ArmasLoop = true
+    task.spawn(function()
+        while Config.ESPArmas do
+            updateWeaponESP()
+            task.wait(0.5)
+        end
+        clearWeaponESP()
+        State.ArmasLoop = false
     end)
 end
 
@@ -409,15 +510,47 @@ local function toggleNoclip(state)
 end
 
 -- ========================================
---           CREAR ITEMS DEL PANEL
+--           FULLBRIGHT
 -- ========================================
-crearItem("ESP", "🎯", function(s)
-    Config.ESP = s
-    if s then
-        startESPLoop()
+local originalLighting = {
+    Brightness = Lighting.Brightness,
+    ClockTime = Lighting.ClockTime,
+    FogEnd = Lighting.FogEnd,
+    GlobalShadows = Lighting.GlobalShadows,
+    Ambient = Lighting.Ambient,
+}
+
+local function aplicarFullbright(state)
+    if state then
+        Lighting.Brightness = 3
+        Lighting.ClockTime = 14
+        Lighting.FogEnd = 100000
+        Lighting.GlobalShadows = false
+        Lighting.Ambient = Color3.fromRGB(180, 180, 180)
     else
-        clearESP()
+        Lighting.Brightness = originalLighting.Brightness
+        Lighting.ClockTime = originalLighting.ClockTime
+        Lighting.FogEnd = originalLighting.FogEnd
+        Lighting.GlobalShadows = originalLighting.GlobalShadows
+        Lighting.Ambient = originalLighting.Ambient
     end
+end
+
+-- ========================================
+--           CREAR ITEMS
+-- ========================================
+crearItem("ESP Roles", "🎯", function(s)
+    Config.ESP = s
+    if s then startESPLoop() else clearESP() end
+end)
+
+crearItem("ESP Distancia", "📏", function(s)
+    Config.ESPDistancia = s
+end)
+
+crearItem("ESP Armas Tiradas", "🔫", function(s)
+    Config.ESPArmas = s
+    if s then startArmasLoop() else clearWeaponESP() end
 end)
 
 crearItem("Speed", "⚡", function(s)
@@ -433,6 +566,11 @@ end)
 crearItem("Noclip", "👻", function(s)
     Config.Noclip = s
     toggleNoclip(s)
+end)
+
+crearItem("Fullbright", "💡", function(s)
+    Config.Fullbright = s
+    aplicarFullbright(s)
 end)
 
 -- ========================================
@@ -461,4 +599,4 @@ player.CharacterAdded:Connect(function()
     aplicarSpeed()
 end)
 
-print("✅ MM2 UI cargada - Toca el ⚙ para abrir")
+print("✅ MM2 UI v2 cargada - 7 funciones listas")
