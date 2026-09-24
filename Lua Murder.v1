@@ -1,14 +1,30 @@
---[[ MM2 PANEL v2.2 - ARREGLADO
-     - ESP se re-crea automáticamente al respawnear
-     - ESP Armas busca en TODO workspace ]]
+--[[ MM2 PANEL v3.0 - ROJO SANGRE
+     Tema nuevo + Animaciones + Todo lo arreglado ]]
 
 local Players = game:GetService("Players")
 local RunService = game:GetService("RunService")
 local UserInputService = game:GetService("UserInputService")
 local Lighting = game:GetService("Lighting")
+local TweenService = game:GetService("TweenService")
 
 local player = Players.LocalPlayer
 local camera = workspace.CurrentCamera
+
+-- ========================================
+--           🎨 TEMA ROJO SANGRE
+-- ========================================
+local Theme = {
+    Primary     = Color3.fromRGB(220, 30, 40),      -- Rojo brillante
+    PrimaryDark = Color3.fromRGB(140, 15, 25),      -- Rojo oscuro
+    Accent      = Color3.fromRGB(255, 80, 80),      -- Rojo claro (para brillos)
+    Background  = Color3.fromRGB(15, 8, 10),        -- Casi negro rojizo
+    Panel       = Color3.fromRGB(22, 12, 15),       -- Panel
+    Header      = Color3.fromRGB(30, 15, 18),       -- Header
+    Item        = Color3.fromRGB(32, 18, 22),       -- Items
+    Text        = Color3.fromRGB(245, 235, 235),    -- Texto claro
+    TextDim     = Color3.fromRGB(170, 140, 140),    -- Texto apagado
+    Off         = Color3.fromRGB(60, 40, 45),       -- Switch apagado
+}
 
 local Config = {
     ESP = false,
@@ -31,6 +47,7 @@ local State = {
     ArmasLoop = false,
     JumpConn = nil,
     NoclipConn = nil,
+    PanelOpen = false,
 }
 
 local ROLE_COLORS = {
@@ -49,12 +66,13 @@ ScreenGui.ResetOnSpawn = false
 ScreenGui.IgnoreGuiInset = true
 ScreenGui.Parent = player:WaitForChild("PlayerGui")
 
+-- Botón abrir (con pulso)
 local OpenBtn = Instance.new("TextButton")
-OpenBtn.Size = UDim2.new(0, 50, 0, 50)
+OpenBtn.Size = UDim2.new(0, 52, 0, 52)
 OpenBtn.Position = UDim2.new(0, 15, 0.45, 0)
-OpenBtn.BackgroundColor3 = Color3.fromRGB(25, 25, 30)
-OpenBtn.TextColor3 = Color3.fromRGB(0, 220, 255)
-OpenBtn.Text = "⚙"
+OpenBtn.BackgroundColor3 = Theme.Panel
+OpenBtn.TextColor3 = Theme.Primary
+OpenBtn.Text = "🔪"
 OpenBtn.Font = Enum.Font.GothamBold
 OpenBtn.TextSize = 24
 OpenBtn.BorderSizePixel = 0
@@ -67,14 +85,31 @@ c1.CornerRadius = UDim.new(1, 0)
 c1.Parent = OpenBtn
 
 local s1 = Instance.new("UIStroke")
-s1.Color = Color3.fromRGB(0, 220, 255)
+s1.Color = Theme.Primary
 s1.Thickness = 2
 s1.Parent = OpenBtn
 
+-- Animación de pulso del botón
+task.spawn(function()
+    while OpenBtn.Parent do
+        local tween = TweenService:Create(s1, TweenInfo.new(1.5, Enum.EasingStyle.Sine, Enum.EasingDirection.InOut), {
+            Transparency = 0.7
+        })
+        tween:Play()
+        task.wait(1.5)
+        local tween2 = TweenService:Create(s1, TweenInfo.new(1.5, Enum.EasingStyle.Sine, Enum.EasingDirection.InOut), {
+            Transparency = 0
+        })
+        tween2:Play()
+        task.wait(1.5)
+    end
+end)
+
+-- Panel
 local Panel = Instance.new("Frame")
 Panel.Size = UDim2.new(0, 380, 0, 280)
 Panel.Position = UDim2.new(0.5, -190, 0.5, -140)
-Panel.BackgroundColor3 = Color3.fromRGB(18, 18, 24)
+Panel.BackgroundColor3 = Theme.Background
 Panel.BorderSizePixel = 0
 Panel.Visible = false
 Panel.Active = true
@@ -86,14 +121,15 @@ c2.CornerRadius = UDim.new(0, 12)
 c2.Parent = Panel
 
 local s2 = Instance.new("UIStroke")
-s2.Color = Color3.fromRGB(0, 220, 255)
+s2.Color = Theme.Primary
 s2.Thickness = 1.5
-s2.Transparency = 0.4
+s2.Transparency = 0.3
 s2.Parent = Panel
 
+-- Header
 local Header = Instance.new("Frame")
 Header.Size = UDim2.new(1, 0, 0, 34)
-Header.BackgroundColor3 = Color3.fromRGB(25, 25, 32)
+Header.BackgroundColor3 = Theme.Header
 Header.BorderSizePixel = 0
 Header.Parent = Panel
 
@@ -104,16 +140,43 @@ c3.Parent = Header
 local headerFix = Instance.new("Frame")
 headerFix.Size = UDim2.new(1, 0, 0, 12)
 headerFix.Position = UDim2.new(0, 0, 1, -12)
-headerFix.BackgroundColor3 = Color3.fromRGB(25, 25, 32)
+headerFix.BackgroundColor3 = Theme.Header
 headerFix.BorderSizePixel = 0
 headerFix.Parent = Header
 
+-- Puntito rojo pulsante en el header
+local dot = Instance.new("Frame")
+dot.Size = UDim2.new(0, 8, 0, 8)
+dot.Position = UDim2.new(0, 12, 0.5, -4)
+dot.BackgroundColor3 = Theme.Primary
+dot.BorderSizePixel = 0
+dot.Parent = Header
+
+local cdot = Instance.new("UICorner")
+cdot.CornerRadius = UDim.new(1, 0)
+cdot.Parent = dot
+
+task.spawn(function()
+    while dot.Parent do
+        local t = TweenService:Create(dot, TweenInfo.new(0.8, Enum.EasingStyle.Sine), {
+            BackgroundColor3 = Theme.Accent
+        })
+        t:Play()
+        task.wait(0.8)
+        local t2 = TweenService:Create(dot, TweenInfo.new(0.8, Enum.EasingStyle.Sine), {
+            BackgroundColor3 = Theme.PrimaryDark
+        })
+        t2:Play()
+        task.wait(0.8)
+    end
+end)
+
 local TitleLbl = Instance.new("TextLabel")
 TitleLbl.Size = UDim2.new(1, -50, 1, 0)
-TitleLbl.Position = UDim2.new(0, 12, 0, 0)
+TitleLbl.Position = UDim2.new(0, 26, 0, 0)
 TitleLbl.BackgroundTransparency = 1
-TitleLbl.Text = "🎮 MM2 PANEL v2.2"
-TitleLbl.TextColor3 = Color3.fromRGB(0, 220, 255)
+TitleLbl.Text = "MM2 PANEL v3.0"
+TitleLbl.TextColor3 = Theme.Primary
 TitleLbl.Font = Enum.Font.GothamBold
 TitleLbl.TextSize = 13
 TitleLbl.TextXAlignment = Enum.TextXAlignment.Left
@@ -122,7 +185,7 @@ TitleLbl.Parent = Header
 local CloseBtn = Instance.new("TextButton")
 CloseBtn.Size = UDim2.new(0, 24, 0, 24)
 CloseBtn.Position = UDim2.new(1, -30, 0.5, -12)
-CloseBtn.BackgroundColor3 = Color3.fromRGB(200, 40, 60)
+CloseBtn.BackgroundColor3 = Theme.PrimaryDark
 CloseBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
 CloseBtn.Text = "✕"
 CloseBtn.Font = Enum.Font.GothamBold
@@ -134,13 +197,14 @@ local c4 = Instance.new("UICorner")
 c4.CornerRadius = UDim.new(1, 0)
 c4.Parent = CloseBtn
 
+-- Grid
 local ItemsHolder = Instance.new("ScrollingFrame")
 ItemsHolder.Size = UDim2.new(1, -16, 1, -46)
 ItemsHolder.Position = UDim2.new(0, 8, 0, 40)
 ItemsHolder.BackgroundTransparency = 1
 ItemsHolder.BorderSizePixel = 0
 ItemsHolder.ScrollBarThickness = 3
-ItemsHolder.ScrollBarImageColor3 = Color3.fromRGB(0, 220, 255)
+ItemsHolder.ScrollBarImageColor3 = Theme.Primary
 ItemsHolder.CanvasSize = UDim2.new(0, 0, 0, 0)
 ItemsHolder.AutomaticCanvasSize = Enum.AutomaticSize.Y
 ItemsHolder.Parent = Panel
@@ -151,9 +215,10 @@ Layout.CellPadding = UDim2.new(0, 6, 0, 6)
 Layout.SortOrder = Enum.SortOrder.LayoutOrder
 Layout.Parent = ItemsHolder
 
+-- Crear item con efecto
 local function crearItem(nombre, emoji, callback)
     local item = Instance.new("TextButton")
-    item.BackgroundColor3 = Color3.fromRGB(28, 28, 36)
+    item.BackgroundColor3 = Theme.Item
     item.Text = ""
     item.BorderSizePixel = 0
     item.AutoButtonColor = false
@@ -164,7 +229,7 @@ local function crearItem(nombre, emoji, callback)
     c.Parent = item
     
     local stroke = Instance.new("UIStroke")
-    stroke.Color = Color3.fromRGB(60, 60, 75)
+    stroke.Color = Color3.fromRGB(80, 50, 55)
     stroke.Thickness = 1.5
     stroke.Parent = item
     
@@ -183,7 +248,7 @@ local function crearItem(nombre, emoji, callback)
     lbl.Position = UDim2.new(0, 8, 1, -17)
     lbl.BackgroundTransparency = 1
     lbl.Text = nombre
-    lbl.TextColor3 = Color3.fromRGB(220, 220, 230)
+    lbl.TextColor3 = Theme.Text
     lbl.Font = Enum.Font.GothamSemibold
     lbl.TextSize = 10
     lbl.TextXAlignment = Enum.TextXAlignment.Left
@@ -192,7 +257,7 @@ local function crearItem(nombre, emoji, callback)
     local sw = Instance.new("Frame")
     sw.Size = UDim2.new(0, 30, 0, 15)
     sw.Position = UDim2.new(1, -38, 0, 6)
-    sw.BackgroundColor3 = Color3.fromRGB(50, 50, 65)
+    sw.BackgroundColor3 = Theme.Off
     sw.BorderSizePixel = 0
     sw.Parent = item
     
@@ -203,7 +268,7 @@ local function crearItem(nombre, emoji, callback)
     local kn = Instance.new("Frame")
     kn.Size = UDim2.new(0, 11, 0, 11)
     kn.Position = UDim2.new(0, 2, 0.5, -5.5)
-    kn.BackgroundColor3 = Color3.new(1, 1, 1)
+    kn.BackgroundColor3 = Color3.fromRGB(255, 255, 255)
     kn.BorderSizePixel = 0
     kn.Parent = sw
     
@@ -215,15 +280,25 @@ local function crearItem(nombre, emoji, callback)
     local function setState(state)
         isOn = state
         if isOn then
-            sw.BackgroundColor3 = Color3.fromRGB(0, 220, 255)
+            sw.BackgroundColor3 = Theme.Primary
             kn.Position = UDim2.new(1, -13, 0.5, -5.5)
-            stroke.Color = Color3.fromRGB(0, 220, 255)
-            lbl.TextColor3 = Color3.fromRGB(0, 220, 255)
+            stroke.Color = Theme.Primary
+            lbl.TextColor3 = Theme.Primary
+            -- Efecto de brillo al activar
+            local glow = TweenService:Create(stroke, TweenInfo.new(0.3), {
+                Transparency = 0.5
+            })
+            glow:Play()
+            task.delay(0.3, function()
+                TweenService:Create(stroke, TweenInfo.new(0.3), {
+                    Transparency = 0
+                }):Play()
+            end)
         else
-            sw.BackgroundColor3 = Color3.fromRGB(50, 50, 65)
+            sw.BackgroundColor3 = Theme.Off
             kn.Position = UDim2.new(0, 2, 0.5, -5.5)
-            stroke.Color = Color3.fromRGB(60, 60, 75)
-            lbl.TextColor3 = Color3.fromRGB(220, 220, 230)
+            stroke.Color = Color3.fromRGB(80, 50, 55)
+            lbl.TextColor3 = Theme.Text
         end
         if callback then pcall(callback, isOn) end
     end
@@ -251,7 +326,7 @@ local function getRole(targetPlayer)
 end
 
 -- ========================================
---           ESP - LIMPIAR
+--           ESP
 -- ========================================
 local function removeESP(p)
     if State.ESPObjects[p] then
@@ -264,9 +339,6 @@ local function removeESP(p)
     end
 end
 
--- ========================================
---           ESP - CREAR
--- ========================================
 local function createESP(targetPlayer)
     if targetPlayer == player then return end
     local char = targetPlayer.Character
@@ -277,11 +349,8 @@ local function createESP(targetPlayer)
     removeESP(targetPlayer)
     State.ESPObjects[targetPlayer] = {}
     local objs = State.ESPObjects[targetPlayer]
-    
-    -- Guardar referencia del personaje
     objs.Char = char
     
-    -- Highlight
     local hl = Instance.new("Highlight")
     hl.FillTransparency = 0.5
     hl.OutlineTransparency = 0
@@ -290,7 +359,6 @@ local function createESP(targetPlayer)
     hl.Parent = char
     objs.Highlight = hl
     
-    -- Billboard (nombre + distancia)
     local head = char:FindFirstChild("Head")
     if head then
         local bb = Instance.new("BillboardGui")
@@ -314,7 +382,7 @@ local function createESP(targetPlayer)
         dist.Size = UDim2.new(1, 0, 0.4, 0)
         dist.Position = UDim2.new(0, 0, 0.6, 0)
         dist.BackgroundTransparency = 1
-        dist.TextColor3 = Color3.fromRGB(0, 220, 255)
+        dist.TextColor3 = Theme.Accent
         dist.TextStrokeTransparency = 0
         dist.TextStrokeColor3 = Color3.new(0, 0, 0)
         dist.Font = Enum.Font.GothamSemibold
@@ -326,7 +394,6 @@ local function createESP(targetPlayer)
         objs.DistLabel = dist
     end
     
-    -- Caja 2D
     local boxBB = Instance.new("BillboardGui")
     boxBB.Size = UDim2.new(0, 70, 0, 90)
     boxBB.StudsOffset = Vector3.new(0, 1.5, 0)
@@ -346,9 +413,6 @@ local function createESP(targetPlayer)
     objs.BoxFrame = boxFrame
 end
 
--- ========================================
---           ESP - ACTUALIZAR
--- ========================================
 local function updateESP(targetPlayer)
     if targetPlayer == player then return end
     local char = targetPlayer.Character
@@ -357,14 +421,11 @@ local function updateESP(targetPlayer)
     if not hrp then return end
     
     local objs = State.ESPObjects[targetPlayer]
-    
-    -- 🔧 FIX PRINCIPAL: Si el char cambió (respawn) o ya no existe, recrear
     if not objs or objs.Char ~= char or not objs.Char.Parent then
         removeESP(targetPlayer)
         createESP(targetPlayer)
         objs = State.ESPObjects[targetPlayer]
     end
-    
     if not objs then return end
     
     local role = getRole(targetPlayer)
@@ -425,41 +486,24 @@ local function startESPLoop()
 end
 
 -- ========================================
---           🔧 ESP ARMAS TIRADAS (ARREGLADO)
+--           ARMAS TIRADAS
 -- ========================================
--- Busca armas en TODO workspace, sin importar dónde estén
 local function isDroppedWeapon(obj)
     if not obj:IsA("Tool") then return false end
     if not obj:FindFirstChild("Handle") then return false end
-    
     local n = obj.Name:lower()
-    -- Búsqueda flexible: "knife", "gun", "revolver" en cualquier parte del nombre
-    if not (n:find("knife") or n:find("gun") or n:find("revolver")) then
-        return false
-    end
-    
-    -- Debe estar en workspace (no equipado por jugador)
+    if not (n:find("knife") or n:find("gun") or n:find("revolver")) then return false end
     local parent = obj.Parent
     if not parent then return false end
-    
-    -- Si el padre es un Character, está equipado → NO
-    if parent:IsA("Model") and parent:FindFirstChildOfClass("Humanoid") then
-        return false
-    end
-    
-    -- Si el padre es Backpack de jugador → NO
+    if parent:IsA("Model") and parent:FindFirstChildOfClass("Humanoid") then return false end
     if parent:IsA("Backpack") then return false end
     if parent.Name == "Backpack" then return false end
-    
-    -- Si está en workspace directa o en algún folder → SÍ
     return true
 end
 
 local function findWeapons()
     local list = {}
     local seen = {}
-    
-    -- Buscar en TODO workspace con GetDescendants
     local ok, descendants = pcall(function() return workspace:GetDescendants() end)
     if ok and descendants then
         for _, obj in ipairs(descendants) do
@@ -469,7 +513,6 @@ local function findWeapons()
             end
         end
     end
-    
     return list
 end
 
@@ -483,14 +526,12 @@ end
 local function updateWeaponESP()
     local cur = findWeapons()
     local set = {}
-    
     for _, t in ipairs(cur) do
         set[t] = true
         if not State.ESPArmasObjects[t] or not State.ESPArmasObjects[t].Parent then
             if State.ESPArmasObjects[t] then 
                 pcall(function() State.ESPArmasObjects[t]:Destroy() end) 
             end
-            
             local hl = Instance.new("Highlight")
             local n = t.Name:lower()
             local col = n:find("knife") and Color3.fromRGB(255, 140, 0) or Color3.fromRGB(255, 220, 0)
@@ -504,8 +545,6 @@ local function updateWeaponESP()
             State.ESPArmasObjects[t] = hl
         end
     end
-    
-    -- Limpiar armas que ya no están
     for t, o in pairs(State.ESPArmasObjects) do
         if not set[t] or not t.Parent then
             if o and o.Destroy then pcall(function() o:Destroy() end) end
@@ -520,7 +559,7 @@ local function startArmasLoop()
     task.spawn(function()
         while Config.ESPArmas do
             pcall(updateWeaponESP)
-            task.wait(0.6)  -- un poco más lento porque busca en todo workspace
+            task.wait(0.6)
         end
         clearWeaponESP()
         State.ArmasLoop = false
@@ -611,56 +650,4 @@ local function aplicarFullbright(state)
     end
 end
 
--- ========================================
---           CREAR ITEMS
--- ========================================
-crearItem("ESP Roles", "🎯", function(s)
-    Config.ESP = s
-    if s then startESPLoop() end
-    if not s and not Config.ESPCaja2D and not Config.ESPDistancia then clearESP() end
-end)
-
-crearItem("Distancia", "📏", function(s)
-    Config.ESPDistancia = s
-    if s then startESPLoop() end
-end)
-
-crearItem("Caja 2D", "📦", function(s)
-    Config.ESPCaja2D = s
-    if s then startESPLoop() end
-end)
-
-crearItem("Armas Tiradas", "🔫", function(s)
-    Config.ESPArmas = s
-    if s then startArmasLoop() else clearWeaponESP() end
-end)
-
-crearItem("Speed", "⚡", function(s)
-    Config.Speed = s
-    aplicarSpeed()
-end)
-
-crearItem("Inf Jump", "🦘", function(s)
-    Config.Jump = s
-    toggleJump(s)
-end)
-
-crearItem("Noclip", "👻", function(s)
-    Config.Noclip = s
-    toggleNoclip(s)
-end)
-
-crearItem("Fullbright", "💡", function(s)
-    Config.Fullbright = s
-    aplicarFullbright(s)
-end)
-
--- ========================================
---           ABRIR / CERRAR
--- ========================================
-OpenBtn.MouseButton1Click:Connect(function()
-    Panel.Visible = true
-    OpenBtn.Visible = false
-end)
-
-CloseBtn.MouseButton1Click:Connect(function()
+-
