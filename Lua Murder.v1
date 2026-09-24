@@ -1,53 +1,37 @@
---[[ MM2 PANEL v3.0 - ROJO SANGRE
-     Tema nuevo + Animaciones + Todo lo arreglado ]]
+--[[ MM2 PANEL v3.1 - Botón arreglado para celular ]]
 
 local Players = game:GetService("Players")
 local RunService = game:GetService("RunService")
 local UserInputService = game:GetService("UserInputService")
 local Lighting = game:GetService("Lighting")
-local TweenService = game:GetService("TweenService")
 
 local player = Players.LocalPlayer
 local camera = workspace.CurrentCamera
 
--- ========================================
---           🎨 TEMA ROJO SANGRE
--- ========================================
+-- 🎨 TEMA ROJO SANGRE
 local Theme = {
-    Primary     = Color3.fromRGB(220, 30, 40),      -- Rojo brillante
-    PrimaryDark = Color3.fromRGB(140, 15, 25),      -- Rojo oscuro
-    Accent      = Color3.fromRGB(255, 80, 80),      -- Rojo claro (para brillos)
-    Background  = Color3.fromRGB(15, 8, 10),        -- Casi negro rojizo
-    Panel       = Color3.fromRGB(22, 12, 15),       -- Panel
-    Header      = Color3.fromRGB(30, 15, 18),       -- Header
-    Item        = Color3.fromRGB(32, 18, 22),       -- Items
-    Text        = Color3.fromRGB(245, 235, 235),    -- Texto claro
-    TextDim     = Color3.fromRGB(170, 140, 140),    -- Texto apagado
-    Off         = Color3.fromRGB(60, 40, 45),       -- Switch apagado
+    Primary     = Color3.fromRGB(220, 30, 40),
+    PrimaryDark = Color3.fromRGB(140, 15, 25),
+    Accent      = Color3.fromRGB(255, 80, 80),
+    Background  = Color3.fromRGB(15, 8, 10),
+    Header      = Color3.fromRGB(30, 15, 18),
+    Item        = Color3.fromRGB(32, 18, 22),
+    Text        = Color3.fromRGB(245, 235, 235),
+    Off         = Color3.fromRGB(60, 40, 45),
 }
 
 local Config = {
-    ESP = false,
-    ESPDistancia = false,
-    ESPArmas = false,
-    ESPCaja2D = false,
-    Speed = false,
-    Jump = false,
-    Noclip = false,
-    Fullbright = false,
+    ESP = false, ESPDistancia = false, ESPArmas = false, ESPCaja2D = false,
+    Speed = false, Jump = false, Noclip = false, Fullbright = false,
 }
 
 local SPEED_VALUE = 50
 local originalSpeed = 16
 
 local State = {
-    ESPObjects = {},
-    ESPArmasObjects = {},
-    ESPLoop = false,
-    ArmasLoop = false,
-    JumpConn = nil,
-    NoclipConn = nil,
-    PanelOpen = false,
+    ESPObjects = {}, ESPArmasObjects = {},
+    ESPLoop = false, ArmasLoop = false,
+    JumpConn = nil, NoclipConn = nil,
 }
 
 local ROLE_COLORS = {
@@ -57,27 +41,25 @@ local ROLE_COLORS = {
     Unknown  = Color3.fromRGB(180, 180, 180),
 }
 
--- ========================================
---           GUI
--- ========================================
+-- GUI
 local ScreenGui = Instance.new("ScreenGui")
 ScreenGui.Name = "MM2_Panel"
 ScreenGui.ResetOnSpawn = false
 ScreenGui.IgnoreGuiInset = true
 ScreenGui.Parent = player:WaitForChild("PlayerGui")
 
--- Botón abrir (con pulso)
+-- Botón abrir (SIN Draggable → así funciona el tap en celu)
 local OpenBtn = Instance.new("TextButton")
 OpenBtn.Size = UDim2.new(0, 52, 0, 52)
 OpenBtn.Position = UDim2.new(0, 15, 0.45, 0)
-OpenBtn.BackgroundColor3 = Theme.Panel
+OpenBtn.BackgroundColor3 = Theme.Background
 OpenBtn.TextColor3 = Theme.Primary
 OpenBtn.Text = "🔪"
 OpenBtn.Font = Enum.Font.GothamBold
 OpenBtn.TextSize = 24
 OpenBtn.BorderSizePixel = 0
 OpenBtn.Active = true
-OpenBtn.Draggable = true
+-- 👇 CLAVE: quitamos Draggable para que el tap funcione
 OpenBtn.Parent = ScreenGui
 
 local c1 = Instance.new("UICorner")
@@ -89,22 +71,6 @@ s1.Color = Theme.Primary
 s1.Thickness = 2
 s1.Parent = OpenBtn
 
--- Animación de pulso del botón
-task.spawn(function()
-    while OpenBtn.Parent do
-        local tween = TweenService:Create(s1, TweenInfo.new(1.5, Enum.EasingStyle.Sine, Enum.EasingDirection.InOut), {
-            Transparency = 0.7
-        })
-        tween:Play()
-        task.wait(1.5)
-        local tween2 = TweenService:Create(s1, TweenInfo.new(1.5, Enum.EasingStyle.Sine, Enum.EasingDirection.InOut), {
-            Transparency = 0
-        })
-        tween2:Play()
-        task.wait(1.5)
-    end
-end)
-
 -- Panel
 local Panel = Instance.new("Frame")
 Panel.Size = UDim2.new(0, 380, 0, 280)
@@ -113,7 +79,7 @@ Panel.BackgroundColor3 = Theme.Background
 Panel.BorderSizePixel = 0
 Panel.Visible = false
 Panel.Active = true
-Panel.Draggable = true
+Panel.Draggable = true -- el panel SÍ se puede arrastrar
 Panel.Parent = ScreenGui
 
 local c2 = Instance.new("UICorner")
@@ -144,7 +110,6 @@ headerFix.BackgroundColor3 = Theme.Header
 headerFix.BorderSizePixel = 0
 headerFix.Parent = Header
 
--- Puntito rojo pulsante en el header
 local dot = Instance.new("Frame")
 dot.Size = UDim2.new(0, 8, 0, 8)
 dot.Position = UDim2.new(0, 12, 0.5, -4)
@@ -156,26 +121,11 @@ local cdot = Instance.new("UICorner")
 cdot.CornerRadius = UDim.new(1, 0)
 cdot.Parent = dot
 
-task.spawn(function()
-    while dot.Parent do
-        local t = TweenService:Create(dot, TweenInfo.new(0.8, Enum.EasingStyle.Sine), {
-            BackgroundColor3 = Theme.Accent
-        })
-        t:Play()
-        task.wait(0.8)
-        local t2 = TweenService:Create(dot, TweenInfo.new(0.8, Enum.EasingStyle.Sine), {
-            BackgroundColor3 = Theme.PrimaryDark
-        })
-        t2:Play()
-        task.wait(0.8)
-    end
-end)
-
 local TitleLbl = Instance.new("TextLabel")
 TitleLbl.Size = UDim2.new(1, -50, 1, 0)
 TitleLbl.Position = UDim2.new(0, 26, 0, 0)
 TitleLbl.BackgroundTransparency = 1
-TitleLbl.Text = "MM2 PANEL v3.0"
+TitleLbl.Text = "MM2 PANEL v3.1"
 TitleLbl.TextColor3 = Theme.Primary
 TitleLbl.Font = Enum.Font.GothamBold
 TitleLbl.TextSize = 13
@@ -215,7 +165,6 @@ Layout.CellPadding = UDim2.new(0, 6, 0, 6)
 Layout.SortOrder = Enum.SortOrder.LayoutOrder
 Layout.Parent = ItemsHolder
 
--- Crear item con efecto
 local function crearItem(nombre, emoji, callback)
     local item = Instance.new("TextButton")
     item.BackgroundColor3 = Theme.Item
@@ -284,16 +233,6 @@ local function crearItem(nombre, emoji, callback)
             kn.Position = UDim2.new(1, -13, 0.5, -5.5)
             stroke.Color = Theme.Primary
             lbl.TextColor3 = Theme.Primary
-            -- Efecto de brillo al activar
-            local glow = TweenService:Create(stroke, TweenInfo.new(0.3), {
-                Transparency = 0.5
-            })
-            glow:Play()
-            task.delay(0.3, function()
-                TweenService:Create(stroke, TweenInfo.new(0.3), {
-                    Transparency = 0
-                }):Play()
-            end)
         else
             sw.BackgroundColor3 = Theme.Off
             kn.Position = UDim2.new(0, 2, 0.5, -5.5)
@@ -308,9 +247,7 @@ local function crearItem(nombre, emoji, callback)
     end)
 end
 
--- ========================================
---           ROLES
--- ========================================
+-- Roles
 local function getRole(targetPlayer)
     local char = targetPlayer.Character
     if not char then return "Unknown" end
@@ -325,15 +262,11 @@ local function getRole(targetPlayer)
     return "Innocent"
 end
 
--- ========================================
---           ESP
--- ========================================
+-- ESP
 local function removeESP(p)
     if State.ESPObjects[p] then
         for _, obj in pairs(State.ESPObjects[p]) do
-            if obj and obj.Destroy then
-                pcall(function() obj:Destroy() end)
-            end
+            if obj and obj.Destroy then pcall(function() obj:Destroy() end) end
         end
         State.ESPObjects[p] = nil
     end
@@ -462,9 +395,7 @@ local function updateESP(targetPlayer)
 end
 
 local function clearESP()
-    for p, _ in pairs(State.ESPObjects) do
-        removeESP(p)
-    end
+    for p, _ in pairs(State.ESPObjects) do removeESP(p) end
     State.ESPObjects = {}
 end
 
@@ -474,9 +405,7 @@ local function startESPLoop()
     task.spawn(function()
         while Config.ESP or Config.ESPCaja2D or Config.ESPDistancia do
             for _, p in ipairs(Players:GetPlayers()) do
-                if p ~= player then
-                    pcall(function() updateESP(p) end)
-                end
+                if p ~= player then pcall(function() updateESP(p) end) end
             end
             task.wait(0.2)
         end
@@ -485,9 +414,7 @@ local function startESPLoop()
     end)
 end
 
--- ========================================
---           ARMAS TIRADAS
--- ========================================
+-- Armas tiradas
 local function isDroppedWeapon(obj)
     if not obj:IsA("Tool") then return false end
     if not obj:FindFirstChild("Handle") then return false end
@@ -496,8 +423,7 @@ local function isDroppedWeapon(obj)
     local parent = obj.Parent
     if not parent then return false end
     if parent:IsA("Model") and parent:FindFirstChildOfClass("Humanoid") then return false end
-    if parent:IsA("Backpack") then return false end
-    if parent.Name == "Backpack" then return false end
+    if parent:IsA("Backpack") or parent.Name == "Backpack" then return false end
     return true
 end
 
@@ -529,9 +455,7 @@ local function updateWeaponESP()
     for _, t in ipairs(cur) do
         set[t] = true
         if not State.ESPArmasObjects[t] or not State.ESPArmasObjects[t].Parent then
-            if State.ESPArmasObjects[t] then 
-                pcall(function() State.ESPArmasObjects[t]:Destroy() end) 
-            end
+            if State.ESPArmasObjects[t] then pcall(function() State.ESPArmasObjects[t]:Destroy() end) end
             local hl = Instance.new("Highlight")
             local n = t.Name:lower()
             local col = n:find("knife") and Color3.fromRGB(255, 140, 0) or Color3.fromRGB(255, 220, 0)
@@ -566,9 +490,7 @@ local function startArmasLoop()
     end)
 end
 
--- ========================================
---           MOVIMIENTO
--- ========================================
+-- Movimiento
 local function getHum()
     local char = player.Character
     if not char then return nil end
@@ -577,9 +499,7 @@ end
 
 local function aplicarSpeed()
     local hum = getHum()
-    if hum then
-        hum.WalkSpeed = Config.Speed and SPEED_VALUE or originalSpeed
-    end
+    if hum then hum.WalkSpeed = Config.Speed and SPEED_VALUE or originalSpeed end
 end
 
 local function toggleJump(state)
@@ -650,4 +570,96 @@ local function aplicarFullbright(state)
     end
 end
 
+-- Crear items
+crearItem("ESP Roles", "🎯", function(s)
+    Config.ESP = s
+    if s then startESPLoop() end
+    if not s and not Config.ESPCaja2D and not Config.ESPDistancia then clearESP() end
+end)
 
+crearItem("Distancia", "📏", function(s)
+    Config.ESPDistancia = s
+    if s then startESPLoop() end
+end)
+
+crearItem("Caja 2D", "📦", function(s)
+    Config.ESPCaja2D = s
+    if s then startESPLoop() end
+end)
+
+crearItem("Armas Tiradas", "🔫", function(s)
+    Config.ESPArmas = s
+    if s then startArmasLoop() else clearWeaponESP() end
+end)
+
+crearItem("Speed", "⚡", function(s)
+    Config.Speed = s
+    aplicarSpeed()
+end)
+
+crearItem("Inf Jump", "🦘", function(s)
+    Config.Jump = s
+    toggleJump(s)
+end)
+
+crearItem("Noclip", "👻", function(s)
+    Config.Noclip = s
+    toggleNoclip(s)
+end)
+
+crearItem("Fullbright", "💡", function(s)
+    Config.Fullbright = s
+    aplicarFullbright(s)
+end)
+
+-- ========================================
+--   🔧 ABRIR / CERRAR (ARREGLADO PARA CELU)
+-- ========================================
+-- Usamos InputBegan con Touch y Mouse para que funcione en celu Y PC
+local lastTap = 0
+
+OpenBtn.InputBegan:Connect(function(input)
+    if input.UserInputType == Enum.UserInputType.Touch or 
+       input.UserInputType == Enum.UserInputType.MouseButton1 then
+        
+        -- Evitar doble tap
+        local now = tick()
+        if now - lastTap < 0.3 then return end
+        lastTap = now
+        
+        Panel.Visible = true
+        OpenBtn.Visible = false
+    end
+end)
+
+CloseBtn.InputBegan:Connect(function(input)
+    if input.UserInputType == Enum.UserInputType.Touch or 
+       input.UserInputType == Enum.UserInputType.MouseButton1 then
+        Panel.Visible = false
+        OpenBtn.Visible = true
+    end
+end)
+
+-- Watchers
+local function setupWatcher(p)
+    if p == player then return end
+    p.CharacterAdded:Connect(function()
+        task.wait(0.5)
+        removeESP(p)
+    end)
+end
+
+for _, p in ipairs(Players:GetPlayers()) do setupWatcher(p) end
+Players.PlayerAdded:Connect(setupWatcher)
+
+Players.PlayerRemoving:Connect(function(p)
+    removeESP(p)
+end)
+
+player.CharacterAdded:Connect(function()
+    task.wait(1)
+    originalSpeed = 16
+    aplicarSpeed()
+end)
+
+warn("✅ MM2 PANEL v3.1 cargado - Botón arreglado para celu")
